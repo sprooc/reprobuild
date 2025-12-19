@@ -1,0 +1,95 @@
+# CMake minimum version requirement
+cmake_minimum_required(VERSION 3.10)
+
+# Project name and version
+project(ReproBuild VERSION 1.0.0 LANGUAGES CXX)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Enable testing
+enable_testing()
+
+# Compiler-specific options
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    # Enable common warnings
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+    
+    # Debug configuration
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
+    
+    # Release configuration
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+endif()
+
+# Include directories
+include_directories(${PROJECT_SOURCE_DIR}/include)
+
+# Find Google Test
+find_package(GTest QUIET)
+
+if(NOT GTest_FOUND)
+    # Download and build Google Test if not found
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/03597a01ee50f33f9d08a7e8e509a2c7a12ab3e1.zip
+    )
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+endif()
+
+# Collect source files (excluding main.cpp for library)
+file(GLOB_RECURSE LIB_SOURCES "src/*.cpp")
+list(REMOVE_ITEM LIB_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
+
+# Create a library for the main code (without main function)
+add_library(reprobuild_lib ${LIB_SOURCES} ${HEADERS})
+
+# Create main executable
+add_executable(${PROJECT_NAME} src/main.cpp)
+target_link_libraries(${PROJECT_NAME} reprobuild_lib)
+
+# Collect test files
+file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
+
+if(TEST_SOURCES)
+    # Create test executable
+    add_executable(reprobuild_tests ${TEST_SOURCES})
+    
+    # Link test executable with the library and Google Test
+    target_link_libraries(reprobuild_tests 
+        reprobuild_lib
+        gtest 
+        gtest_main
+        pthread
+    )
+    
+    # Add tests to CTest
+    add_test(NAME ReprobuildTests COMMAND reprobuild_tests)
+endif()
+
+# Set output directory
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+if(TARGET reprobuild_tests)
+    set_target_properties(reprobuild_tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    )
+endif()
+
+# Print build information
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "Library sources: ${LIB_SOURCES}")
+if(TEST_SOURCES)
+    message(STATUS "Test sources found: ${TEST_SOURCES}")
+else()
+    message(STATUS "No test sources found in tests/ directory")
+endif()
