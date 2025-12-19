@@ -39,3 +39,4 @@ Thumbs.db
 # Debug files
 *.dSYM/
 *.pdb
+logs/

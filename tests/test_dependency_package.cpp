@@ -12,7 +12,7 @@ class DependencyPackageTest : public ::testing::Test {
   DependencyPackage valid_package;
 };
 
-TEST_F(DependencyPackageTest, HandlesEmptyStringsInSetters) {
+TEST_F(DependencyPackageTest, FromRawFileValid) {
   DependencyPackage pkg =
       DependencyPackage::fromRawFile("/lib/x86_64-linux-gnu/libc.so.6");
 

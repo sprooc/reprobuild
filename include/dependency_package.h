@@ -34,6 +34,11 @@ class DependencyPackage {
   bool verifyIntegrity(const std::string& computed_hash) const;
   std::string toString() const;
 
+  // Comparison operators
+  bool operator==(const DependencyPackage& other) const;
+  bool operator!=(const DependencyPackage& other) const;
+  bool operator<(const DependencyPackage& other) const;
+  
   static DependencyPackage fromRawFile(const std::string& raw_file_path);
 
  private:

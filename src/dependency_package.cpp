@@ -8,8 +8,7 @@
 #include <stdexcept>
 
 DependencyPackage::DependencyPackage()
-    : package_name_(""), original_path_(""), version_(""), hash_value_("") {
-}
+    : package_name_(""), original_path_(""), version_(""), hash_value_("") {}
 
 DependencyPackage::DependencyPackage(const std::string& package_name,
                                      const std::string& original_path,
@@ -34,7 +33,9 @@ std::string DependencyPackage::generateUniqueId() const {
 
 bool DependencyPackage::matches(const DependencyPackage& other) const {
   // Two packages match if they have the same name and version
-  return package_name_ == other.package_name_ && version_ == other.version_;
+  return package_name_ == other.package_name_ &&
+         original_path_ == other.original_path_ && version_ == other.version_ &&
+         hash_value_ == other.hash_value_;
 }
 
 bool DependencyPackage::verifyIntegrity(
@@ -52,6 +53,24 @@ std::string DependencyPackage::toString() const {
   oss << "hash: \"" << hash_value_ << "\"";
   oss << "}";
   return oss.str();
+}
+
+bool DependencyPackage::operator==(const DependencyPackage& other) const {
+  return package_name_ == other.package_name_ &&
+         original_path_ == other.original_path_ && version_ == other.version_ &&
+         hash_value_ == other.hash_value_;
+}
+
+bool DependencyPackage::operator!=(const DependencyPackage& other) const {
+  return !(*this == other);
+}
+
+bool DependencyPackage::operator<(const DependencyPackage& other) const {
+  // Sort by package name first, then by version
+  if (package_name_ != other.package_name_) {
+    return package_name_ < other.package_name_;
+  }
+  return version_ < other.version_;
 }
 
 // Stream output operator
