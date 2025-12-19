@@ -74,7 +74,6 @@ int main(int argc, char* argv[]) {
     tracker.setOutputFile(output_file);
     tracker.setLogDirectory(log_dir);
 
-
     BuildRecord record = tracker.trackBuild(build_command);
 
   } catch (const std::exception& e) {

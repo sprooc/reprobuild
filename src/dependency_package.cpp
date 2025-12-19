@@ -146,7 +146,7 @@ DependencyPackage DependencyPackage::fromRawFile(
     }
 
     // Create and return DependencyPackage object
-    return DependencyPackage(package_name, real_path, version, hash_value);
+    return DependencyPackage(package_name, raw_file_path, version, hash_value);
 
   } catch (const std::exception& e) {
     // If any step fails, return an invalid package with error information
