@@ -53,8 +53,8 @@ std::string Tracker::executeWithStrace(
   std::string cmd_str = joinCommand(command);
   std::string strace_log =
       log_dir_ + "/strace_" + std::to_string(getpid()) + ".log";
-  std::string strace_cmd =
-      "strace -e openat -f -q -o " + strace_log + " " + cmd_str;
+  std::string strace_cmd = "strace -e trace=openat,execve,execveat -f -q -o " +
+                           strace_log + " " + cmd_str;
 
   Logger::debug("Executing: " + strace_cmd);
 
@@ -107,6 +107,35 @@ std::set<std::string> Tracker::parseSoFiles(const std::string& strace_output) {
   return so_files;
 }
 
+std::set<std::string> Tracker::parseExecutables(
+    const std::string& strace_output) {
+  std::set<std::string> executables;
+  std::istringstream iss(strace_output);
+  std::string line;
+
+  // Match execve and execveat syscalls in strace format: PID  execve("path",
+  // ...)
+  std::regex exec_regex(R"(\d+\s+(?:execve|execveat)\(\"([^\"]+)\")");
+  std::smatch match;
+
+  while (std::getline(iss, line)) {
+    if (std::regex_search(line, match, exec_regex)) {
+      std::string exec_path = match[1].str();
+
+      // Skip if path doesn't exist or should be ignored
+      if (!std::filesystem::exists(exec_path) ||
+          shouldIgnoreExecutable(exec_path)) {
+        continue;
+      }
+
+      Logger::debug("Found executable: " + exec_path);
+      executables.insert(exec_path);
+    }
+  }
+
+  return executables;
+}
+
 bool Tracker::shouldIgnoreFile(const std::string& filepath) const {
   for (const auto& pattern : ignore_patterns_) {
     if (filepath.find(pattern) != std::string::npos) {
@@ -114,6 +143,38 @@ bool Tracker::shouldIgnoreFile(const std::string& filepath) const {
     }
   }
 
+  if (filepath.find("./") == 0 ||
+      filepath.find("build/") != std::string::npos) {
+    return true;
+  }
+
+  return false;
+}
+
+bool Tracker::shouldIgnoreExecutable(const std::string& filepath) const {
+  // Ignore common shell and system utilities that are not build dependencies
+  static const std::vector<std::string> ignore_execs = {
+      "/bin/sh",      "/bin/bash",      "/bin/dash",        "/bin/zsh",
+      "/usr/bin/env", "/usr/bin/which", "/usr/bin/dirname", "/usr/bin/basename",
+      "/bin/echo",    "/bin/cat",       "/bin/grep",        "/bin/sed",
+      "/bin/awk",     "/bin/ls",        "/bin/cp",          "/bin/mv",
+      "/bin/rm",      "/bin/mkdir",     "/usr/bin/test",    "/usr/bin/[",
+      "/bin/true",    "/bin/false"};
+
+  for (const auto& ignored : ignore_execs) {
+    if (filepath == ignored) {
+      return true;
+    }
+  }
+
+  // Use the same ignore patterns as for .so files
+  for (const auto& pattern : ignore_patterns_) {
+    if (filepath.find(pattern) != std::string::npos) {
+      return true;
+    }
+  }
+
+  // Skip if it's in the current build directory
   if (filepath.find("./") == 0 ||
       filepath.find("build/") != std::string::npos) {
     return true;
@@ -145,13 +206,16 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
   }
 
   auto so_files = parseSoFiles(strace_output);
+  auto executables = parseExecutables(strace_output);
   Logger::info("Found " + std::to_string(so_files.size()) + " .so files");
+  Logger::info("Found " + std::to_string(executables.size()) + " executables");
 
   BuildRecord record(project_name_);
 
+  // Process .so files
   for (const auto& so_file : so_files) {
     try {
-      Logger::debug("Processing: " + so_file);
+      Logger::debug("Processing .so: " + so_file);
 
       DependencyPackage dep = DependencyPackage::fromRawFile(so_file);
       if (dep.isValid()) {
@@ -163,6 +227,24 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
       }
     } catch (const std::exception& e) {
       Logger::warn("Error processing " + so_file + ": " + e.what());
+    }
+  }
+
+  // Process executables
+  for (const auto& executable : executables) {
+    try {
+      Logger::debug("Processing executable: " + executable);
+
+      DependencyPackage dep = DependencyPackage::fromRawFile(executable);
+      if (dep.isValid()) {
+        record.addDependency(dep);
+        Logger::debug("  Added: " + dep.getPackageName() + " v" +
+                      dep.getVersion());
+      } else {
+        Logger::debug("  Skipped invalid dependency: " + executable);
+      }
+    } catch (const std::exception& e) {
+      Logger::warn("Error processing " + executable + ": " + e.what());
     }
   }
 

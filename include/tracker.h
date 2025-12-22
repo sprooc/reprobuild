@@ -30,7 +30,9 @@ class Tracker {
 
   std::string executeWithStrace(const std::vector<std::string>& command);
   std::set<std::string> parseSoFiles(const std::string& strace_output);
+  std::set<std::string> parseExecutables(const std::string& strace_output);
   bool shouldIgnoreFile(const std::string& filepath) const;
+  bool shouldIgnoreExecutable(const std::string& filepath) const;
   std::string joinCommand(const std::vector<std::string>& command) const;
 };
 
