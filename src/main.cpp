@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
 
   int c;
   int option_index = 0;
-  while ((c = getopt_long(argc, argv, "o:l:h", long_options, &option_index)) !=
+  while ((c = getopt_long(argc, argv, "+o:l:h", long_options, &option_index)) !=
          -1) {
     switch (c) {
       case 'o':
@@ -68,7 +68,8 @@ int main(int argc, char* argv[]) {
 
   try {
     Logger::setLevel(LogLevel::INFO);
-    Tracker tracker("demo_project");
+    Logger::setLevel();
+    Tracker tracker("project");
 
     // Configure tracker with user-specified options
     tracker.setOutputFile(output_file);

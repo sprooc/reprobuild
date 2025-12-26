@@ -20,7 +20,7 @@ configure:
 
 # Build the project
 .PHONY: build
-build:
+build: configure
 	@echo "Building project..."
 	@cd $(BUILD_DIR) && make -j$$(nproc)
 
@@ -65,12 +65,12 @@ debug-test:
 	@echo "Building and testing in debug mode..."
 	@$$(MAKE) BUILD_TYPE=Debug configure build test
 
-# Install Google Test if not available (requires internet)
-.PHONY: install-gtest
-install-gtest:
-	@echo "Installing Google Test system-wide..."
+# Install dependencies
+.PHONY: deps
+deps:
+	@echo "Installing dependencies system-wide..."
 	@sudo apt update
-	@sudo apt install -y libgtest-dev libgmock-dev
+	@sudo apt install -y libgtest-dev libgmock-dev libyaml-cpp-dev
 
 # Show help
 .PHONY: help

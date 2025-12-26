@@ -35,5 +35,5 @@ TEST_F(BuildRecordTest, SaveAndLoadFile) {
   EXPECT_TRUE(record.matches(loaded_record));
 
   // Clean up
-  std::remove(filename.c_str());
+  // std::remove(filename.c_str());
 }

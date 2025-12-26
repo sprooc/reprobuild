@@ -1,4 +1,7 @@
 #include "build_record.h"
+
+#include <yaml-cpp/yaml.h>
+
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -6,137 +9,172 @@
 
 BuildRecord::BuildRecord() : project_name_("") {}
 
-BuildRecord::BuildRecord(const std::string& project_name) 
+BuildRecord::BuildRecord(const std::string& project_name)
     : project_name_(project_name) {}
 
 void BuildRecord::addDependency(const DependencyPackage& package) {
-    if (package.isValid()) {
-        dependencies_[package.getPackageName()] = package;
-    }
+  if (package.isValid()) {
+    dependencies_[package.getPackageName()] = package;
+  }
 }
 
 void BuildRecord::removeDependency(const std::string& package_name) {
-    dependencies_.erase(package_name);
+  dependencies_.erase(package_name);
+}
+
+void BuildRecord::addArtifact(const BuildArtifact& artifact) {
+  artifacts_.push_back(artifact);
+}
+
+void BuildRecord::clearArtifacts() { artifacts_.clear(); }
+
+const std::vector<BuildArtifact>& BuildRecord::getArtifacts() const {
+  return artifacts_;
 }
 
 bool BuildRecord::hasDependency(const std::string& package_name) const {
-    return dependencies_.find(package_name) != dependencies_.end();
+  return dependencies_.find(package_name) != dependencies_.end();
 }
 
-DependencyPackage BuildRecord::getDependency(const std::string& package_name) const {
-    auto it = dependencies_.find(package_name);
-    if (it != dependencies_.end()) {
-        return it->second;
-    }
-    return DependencyPackage();
+DependencyPackage BuildRecord::getDependency(
+    const std::string& package_name) const {
+  auto it = dependencies_.find(package_name);
+  if (it != dependencies_.end()) {
+    return it->second;
+  }
+  return DependencyPackage();
 }
 
 std::vector<DependencyPackage> BuildRecord::getAllDependencies() const {
-    std::vector<DependencyPackage> result;
-    result.reserve(dependencies_.size());
-    
-    for (const auto& pair : dependencies_) {
-        result.push_back(pair.second);
-    }
-    
-    std::sort(result.begin(), result.end());
-    return result;
+  std::vector<DependencyPackage> result;
+  result.reserve(dependencies_.size());
+
+  for (const auto& pair : dependencies_) {
+    result.push_back(pair.second);
+  }
+
+  std::sort(result.begin(), result.end());
+  return result;
 }
 
+size_t BuildRecord::getDependencyCount() const { return dependencies_.size(); }
+
 bool BuildRecord::matches(const BuildRecord& other) const {
-    if (project_name_ != other.project_name_) {
-        return false;
+  if (project_name_ != other.project_name_) {
+    return false;
+  }
+
+  if (dependencies_.size() != other.dependencies_.size()) {
+    return false;
+  }
+
+  for (const auto& pair : dependencies_) {
+    auto it = other.dependencies_.find(pair.first);
+    if (it == other.dependencies_.end() || !(pair.second == it->second)) {
+      return false;
     }
-    
-    if (dependencies_.size() != other.dependencies_.size()) {
-        return false;
-    }
-    
-    for (const auto& pair : dependencies_) {
-        auto it = other.dependencies_.find(pair.first);
-        if (it == other.dependencies_.end() || !(pair.second == it->second)) {
-            return false;
-        }
-    }
-    
-    return true;
+  }
+
+  return true;
 }
 
 std::string BuildRecord::toString() const {
-    std::ostringstream oss;
-    oss << "BuildRecord{";
-    oss << "project: \"" << project_name_ << "\", ";
-    oss << "dependencies: [";
-    
-    auto deps = getAllDependencies();
-    for (size_t i = 0; i < deps.size(); ++i) {
-        if (i > 0) oss << ", ";
-        oss << deps[i].getPackageName() << "@" << deps[i].getVersion();
-    }
-    
-    oss << "]}";
-    return oss.str();
+  std::ostringstream oss;
+  oss << "BuildRecord{";
+  oss << "project: \"" << project_name_ << "\", ";
+  oss << "dependencies: [";
+
+  auto deps = getAllDependencies();
+  for (size_t i = 0; i < deps.size(); ++i) {
+    if (i > 0) oss << ", ";
+    oss << deps[i].getPackageName() << "@" << deps[i].getVersion();
+  }
+
+  oss << "]}";
+  return oss.str();
 }
 
 void BuildRecord::saveToFile(const std::string& filepath) const {
-    std::ofstream file(filepath);
-    if (!file.is_open()) {
-        throw std::runtime_error("Cannot open file for writing: " + filepath);
-    }
-    
-    file << "# Build Record for " << project_name_ << std::endl;
-    file << "project: " << project_name_ << std::endl;
-    file << "dependencies:" << std::endl;
-    
-    auto deps = getAllDependencies();
-    for (const auto& dep : deps) {
-        file << "  - name: " << dep.getPackageName() << std::endl;
-        file << "    path: " << dep.getOriginalPath() << std::endl;
-        file << "    version: " << dep.getVersion() << std::endl;
-        file << "    hash: " << dep.getHashValue() << std::endl;
-    }
-    
-    file.close();
+  YAML::Node root;
+  root["project"] = project_name_;
+
+  YAML::Node deps_node;
+  auto deps = getAllDependencies();
+  for (const auto& dep : deps) {
+    YAML::Node dep_node;
+    dep_node["name"] = dep.getPackageName();
+    dep_node["path"] = dep.getOriginalPath();
+    dep_node["version"] = dep.getVersion();
+    dep_node["hash"] = dep.getHashValue();
+    deps_node.push_back(dep_node);
+  }
+  root["dependencies"] = deps_node;
+
+  // Add artifacts section
+  YAML::Node artifacts_node;
+  for (const auto& artifact : artifacts_) {
+    YAML::Node artifact_node;
+    artifact_node["path"] = artifact.path;
+    artifact_node["hash"] = artifact.hash;
+    artifact_node["type"] = artifact.type;
+    artifacts_node.push_back(artifact_node);
+  }
+  root["artifacts"] = artifacts_node;
+
+  std::ofstream file(filepath);
+  if (!file.is_open()) {
+    throw std::runtime_error("Cannot open file for writing: " + filepath);
+  }
+
+  file << "# Build Record for " << project_name_ << std::endl;
+  file << root << std::endl;
+  file.close();
 }
 
 BuildRecord BuildRecord::loadFromFile(const std::string& filepath) {
-    std::ifstream file(filepath);
-    if (!file.is_open()) {
-        throw std::runtime_error("Cannot open file for reading: " + filepath);
-    }
-    
-    BuildRecord record;
-    std::string line;
-    std::string current_name, current_path, current_version, current_hash;
-    
-    while (std::getline(file, line)) {
-        if (line.empty() || line[0] == '#') {
-            continue;
-        }
-        
-        if (line.substr(0, 8) == "project:") {
-            record.project_name_ = line.substr(9);
-        } else if (line.find("  - name:") == 0) {
-            if (!current_name.empty()) {
-                DependencyPackage dep(current_name, current_path, current_version, current_hash);
-                record.addDependency(dep);
-            }
-            current_name = line.substr(10);
-            current_path = current_version = current_hash = "";
-        } else if (line.find("    path:") == 0) {
-            current_path = line.substr(10);
-        } else if (line.find("    version:") == 0) {
-            current_version = line.substr(13);
-        } else if (line.find("    hash:") == 0) {
-            current_hash = line.substr(10);
-        }
-    }
-    
-    if (!current_name.empty()) {
-        DependencyPackage dep(current_name, current_path, current_version, current_hash);
+  std::ifstream file(filepath);
+  if (!file.is_open()) {
+    throw std::runtime_error("Cannot open file for reading: " + filepath);
+  }
+
+  YAML::Node root = YAML::Load(file);
+  file.close();
+
+  BuildRecord record;
+
+  if (root["project"]) {
+    record.project_name_ = root["project"].as<std::string>();
+  }
+
+  if (root["dependencies"] && root["dependencies"].IsSequence()) {
+    for (const auto& dep_node : root["dependencies"]) {
+      if (dep_node["name"] && dep_node["path"] && dep_node["version"] &&
+          dep_node["hash"]) {
+        std::string name = dep_node["name"].as<std::string>();
+        std::string path = dep_node["path"].as<std::string>();
+        std::string version = dep_node["version"].as<std::string>();
+        std::string hash = dep_node["hash"].as<std::string>();
+
+        DependencyPackage dep(name, path, version, hash);
         record.addDependency(dep);
+      }
     }
-    
-    file.close();
-    return record;
+  }
+
+  // Load artifacts section
+  if (root["artifacts"] && root["artifacts"].IsSequence()) {
+    for (const auto& artifact_node : root["artifacts"]) {
+      if (artifact_node["path"] && artifact_node["hash"] &&
+          artifact_node["type"]) {
+        std::string path = artifact_node["path"].as<std::string>();
+        std::string hash = artifact_node["hash"].as<std::string>();
+        std::string type = artifact_node["type"].as<std::string>();
+
+        BuildArtifact artifact(path, hash, type);
+        record.addArtifact(artifact);
+      }
+    }
+  }
+
+  return record;
 }

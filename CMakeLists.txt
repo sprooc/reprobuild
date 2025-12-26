@@ -34,6 +34,18 @@ if(NOT GTest_FOUND)
     FetchContent_MakeAvailable(googletest)
 endif()
 
+# Find yaml-cpp
+find_package(yaml-cpp QUIET)
+if(NOT yaml-cpp_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(
+        yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG yaml-cpp-0.8.0
+    )
+    FetchContent_MakeAvailable(yaml-cpp)
+endif()
+
 # Collect source files (excluding main executables for library)
 file(GLOB_RECURSE LIB_SOURCES "src/*.cpp")
 list(REMOVE_ITEM LIB_SOURCES 
@@ -44,6 +56,7 @@ file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
 
 # Create library for shared code
 add_library(reprobuild_lib ${LIB_SOURCES} ${HEADERS})
+target_link_libraries(reprobuild_lib yaml-cpp)
 
 # Create executable
 add_executable(${PROJECT_NAME} src/main.cpp)

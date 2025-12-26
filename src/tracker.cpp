@@ -11,6 +11,7 @@
 #include <sstream>
 
 #include "logger.h"
+#include "utils.h"
 
 Tracker::Tracker()
     : project_name_("unknown"),
@@ -53,8 +54,9 @@ std::string Tracker::executeWithStrace(
   std::string cmd_str = joinCommand(command);
   std::string strace_log =
       log_dir_ + "/strace_" + std::to_string(getpid()) + ".log";
-  std::string strace_cmd = "strace -e trace=openat,execve,execveat -f -q -o " +
-                           strace_log + " " + cmd_str;
+  std::string strace_cmd =
+      "strace -e trace=openat,execve,execveat,creat -y -f -q -o " +
+      strace_log + " " + cmd_str;
 
   Logger::debug("Executing: " + strace_cmd);
 
@@ -99,7 +101,7 @@ std::set<std::string> Tracker::parseSoFiles(const std::string& strace_output) {
         continue;
       }
 
-      Logger::debug("Found .so file: " + filepath);
+      Logger::debug("Found shared library: " + filepath);
       so_files.insert(filepath);
     }
   }
@@ -143,11 +145,6 @@ bool Tracker::shouldIgnoreFile(const std::string& filepath) const {
     }
   }
 
-  if (filepath.find("./") == 0 ||
-      filepath.find("build/") != std::string::npos) {
-    return true;
-  }
-
   return false;
 }
 
@@ -167,7 +164,7 @@ bool Tracker::shouldIgnoreExecutable(const std::string& filepath) const {
     }
   }
 
-  // Use the same ignore patterns as for .so files
+  // Use the same ignore patterns as for shared libraries
   for (const auto& pattern : ignore_patterns_) {
     if (filepath.find(pattern) != std::string::npos) {
       return true;
@@ -183,12 +180,53 @@ bool Tracker::shouldIgnoreExecutable(const std::string& filepath) const {
   return false;
 }
 
+bool Tracker::shouldIgnoreArtifact(const std::string& filepath) const {
+  // Ignore CMake temporary files and directories
+  if (filepath.find("CMakeFiles/") != std::string::npos) {
+    return true;
+  }
+  
+  // Ignore CMake cache and configuration files
+  if (filepath.find("CMakeCache.txt") != std::string::npos ||
+      filepath.find("cmake_install.cmake") != std::string::npos ||
+      filepath.find("Makefile") != std::string::npos) {
+    return true;
+  }
+  
+  // Ignore object files and temporary files
+  if (filepath.size() >= 2 && filepath.substr(filepath.size() - 2) == ".o") {
+    return true;
+  }
+  
+  // Ignore temporary and intermediate files
+  if (filepath.find(".tmp") != std::string::npos ||
+      filepath.find(".temp") != std::string::npos) {
+    return true;
+  }
+  
+  // Use base ignore patterns
+  return shouldIgnoreFile(filepath);
+}
+
 std::string Tracker::joinCommand(
     const std::vector<std::string>& command) const {
   std::ostringstream oss;
   for (size_t i = 0; i < command.size(); ++i) {
     if (i > 0) oss << " ";
-    oss << command[i];
+
+    const std::string& arg = command[i];
+    // Check if argument contains spaces or other shell special characters
+    if (arg.find(' ') != std::string::npos ||
+        arg.find('\t') != std::string::npos ||
+        arg.find('&') != std::string::npos ||
+        arg.find('|') != std::string::npos ||
+        arg.find(';') != std::string::npos ||
+        arg.find('(') != std::string::npos ||
+        arg.find(')') != std::string::npos) {
+      oss << "\"" << arg << "\"";
+    } else {
+      oss << arg;
+    }
   }
   return oss.str();
 }
@@ -207,15 +245,16 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
 
   auto so_files = parseSoFiles(strace_output);
   auto executables = parseExecutables(strace_output);
-  Logger::info("Found " + std::to_string(so_files.size()) + " .so files");
+  Logger::info("Found " + std::to_string(so_files.size()) +
+               " shared libraries");
   Logger::info("Found " + std::to_string(executables.size()) + " executables");
 
   BuildRecord record(project_name_);
 
-  // Process .so files
+  // Process shared libraries
   for (const auto& so_file : so_files) {
     try {
-      Logger::debug("Processing .so: " + so_file);
+      Logger::debug("Processing shared library: " + so_file);
 
       DependencyPackage dep = DependencyPackage::fromRawFile(so_file);
       if (dep.isValid()) {
@@ -248,6 +287,9 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
     }
   }
 
+  // Detect build artifacts from strace output
+  detectBuildArtifacts(strace_output, record);
+
   try {
     record.saveToFile(output_file_);
     Logger::info("Saved build record to: " + output_file_);
@@ -257,4 +299,121 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
 
   last_build_record_ = record;
   return record;
+}
+
+void Tracker::detectBuildArtifacts(const std::string& strace_output,
+                                   BuildRecord& record) {
+  Logger::debug("Detecting build artifacts from strace output");
+
+  std::istringstream iss(strace_output);
+  std::string line;
+  std::set<std::string> created_files;
+
+  // With -y option, AT_FDCWD and other paths are resolved, so we can match paths directly
+  // Pattern matches: PID syscall(AT_FDCWD</path/to/dir>, "filename", ..., O_CREAT)
+  std::regex create_regex(R"(\d+\s+(?:openat|creat)\([^,]*<([^>]+)>,\s*\"([^\"]+)\"[^)]*O_CREAT)");
+  // Also match simple creat calls: PID creat("filepath", ...)
+  std::regex creat_regex(R"(\d+\s+creat\(\"([^\"]+)\")");
+  // Match openat with absolute paths directly: openat(..., "/absolute/path", ..., O_CREAT)
+  std::regex absolute_create_regex(R"(\d+\s+openat\([^,]*,\s*\"(/[^\"]+)\"[^)]*O_CREAT)");
+  std::smatch match;
+
+  while (std::getline(iss, line)) {
+    std::string filepath;
+    
+    // Check for openat with AT_FDCWD resolved by -y option
+    if (std::regex_search(line, match, create_regex)) {
+      std::string base_dir = match[1].str();
+      std::string filename = match[2].str();
+      filepath = base_dir + "/" + filename;
+    }
+    // Check for openat with absolute paths
+    else if (std::regex_search(line, match, absolute_create_regex)) {
+      filepath = match[1].str();
+    }
+    // Check for simple creat syscall
+    else if (std::regex_search(line, match, creat_regex)) {
+      filepath = match[1].str();
+    }
+    
+    if (!filepath.empty() && std::filesystem::exists(filepath)) {
+      Logger::debug("Found created file: " + filepath);
+      created_files.insert(filepath);
+    }
+  }
+
+  // Process created files and check if they are executables or shared libraries
+  for (const auto& filepath : created_files) {
+    try {
+      if (!shouldIgnoreArtifact(filepath)) {
+        bool is_executable = false;
+        bool is_shared_lib = false;
+
+        // Check file permissions for executables
+        auto perms = std::filesystem::status(filepath).permissions();
+        if ((perms & std::filesystem::perms::owner_exec) !=
+            std::filesystem::perms::none) {
+          is_executable = true;
+        }
+
+        // Check extension for shared libraries
+        bool has_so_extension =
+            (filepath.size() >= 3 &&
+             filepath.substr(filepath.size() - 3) == ".so") ||
+            filepath.find(".so.") != std::string::npos;
+        if (has_so_extension) {
+          is_shared_lib = true;
+        }
+        Logger::debug("Created file " + filepath +
+                      (is_executable ? " is executable." : "") +
+                      (is_shared_lib ? " is shared library." : ""));
+
+        if (is_executable || is_shared_lib) {
+          std::string hash = Utils::calculateFileHash(filepath);
+          std::string display_path = makeRelativePath(filepath, ".");
+          std::string type = is_shared_lib ? "shared_library" : "executable";
+
+          BuildArtifact artifact(display_path, hash, type);
+          record.addArtifact(artifact);
+
+          Logger::debug("Added artifact: " + display_path + " (" + type + ")");
+        }
+      }
+    } catch (const std::exception& e) {
+      Logger::warn("Error processing created file " + filepath + ": " +
+                   e.what());
+    }
+  }
+}
+
+std::string Tracker::makeRelativePath(const std::string& filepath,
+                                      const std::string& base_dir) {
+  try {
+    std::filesystem::path file_path = std::filesystem::absolute(filepath);
+    std::filesystem::path base_path = std::filesystem::absolute(base_dir);
+
+    // Normalize the base path to remove trailing dots
+    base_path = base_path.lexically_normal();
+
+    // Use filesystem::relative to determine if file is under base directory
+    std::error_code ec;
+    std::filesystem::path rel_path =
+        std::filesystem::relative(file_path, base_path, ec);
+
+    if (!ec) {
+      std::string rel_str = rel_path.string();
+      // Check if the relative path doesn't start with ".." (meaning it's under
+      // base dir)
+      if (rel_str.size() < 2 || rel_str.substr(0, 2) != "..") {
+        return rel_str;
+      }
+    }
+
+    // File is outside base directory, return absolute path
+    return file_path.string();
+  } catch (const std::exception& e) {
+    Logger::warn("Error making relative path for " + filepath + ": " +
+                 e.what());
+    return filepath;
+  }
 }

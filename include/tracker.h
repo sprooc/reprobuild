@@ -31,8 +31,13 @@ class Tracker {
   std::string executeWithStrace(const std::vector<std::string>& command);
   std::set<std::string> parseSoFiles(const std::string& strace_output);
   std::set<std::string> parseExecutables(const std::string& strace_output);
+  void detectBuildArtifacts(const std::string& strace_output,
+                            BuildRecord& record);
+  std::string makeRelativePath(const std::string& filepath,
+                               const std::string& base_dir);
   bool shouldIgnoreFile(const std::string& filepath) const;
   bool shouldIgnoreExecutable(const std::string& filepath) const;
+  bool shouldIgnoreArtifact(const std::string& filepath) const;
   std::string joinCommand(const std::vector<std::string>& command) const;
 };
 

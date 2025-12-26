@@ -7,6 +7,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "utils.h"
+
 DependencyPackage::DependencyPackage()
     : package_name_(""), original_path_(""), version_(""), hash_value_("") {}
 
@@ -136,9 +138,7 @@ DependencyPackage DependencyPackage::fromRawFile(
     }
 
     // Step 4: Calculate SHA256 hash of the file
-    std::string hash_command =
-        "sha256sum " + real_path + " 2>/dev/null | cut -d' ' -f1";
-    std::string hash_value = executeCommand(hash_command);
+    std::string hash_value = Utils::calculateFileHash(real_path);
 
     if (hash_value.empty()) {
       throw std::runtime_error("Could not calculate hash for file: " +
