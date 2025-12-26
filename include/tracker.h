@@ -15,6 +15,8 @@ class Tracker {
 
   BuildRecord trackBuild(const std::vector<std::string>& build_command);
 
+  void prepareBuildEnvironment();
+
   void setOutputFile(const std::string& output_file);
   void setLogDirectory(const std::string& log_dir);
   void addIgnorePattern(const std::string& pattern);
@@ -22,6 +24,7 @@ class Tracker {
   const BuildRecord& getLastBuildRecord() const;
 
  private:
+  std::string build_timestamp_;
   std::string project_name_;
   std::string output_file_;
   std::string log_dir_;
@@ -39,6 +42,12 @@ class Tracker {
   bool shouldIgnoreExecutable(const std::string& filepath) const;
   bool shouldIgnoreArtifact(const std::string& filepath) const;
   std::string joinCommand(const std::vector<std::string>& command) const;
+
+  // Metadata collection methods
+  std::string getArchitecture() const;
+  std::string getDistribution() const;
+  std::string getCurrentTimestamp() const;
+  std::string getHostname() const;
 };
 
 #endif  // DEPENDENCY_TRACKER_H

@@ -13,18 +13,11 @@
 #include "logger.h"
 #include "utils.h"
 
-Tracker::Tracker()
-    : project_name_("unknown"),
-      output_file_("build_record.yaml"),
-      log_dir_("/tmp") {
-  ignore_patterns_.push_back("/tmp/");
-  ignore_patterns_.push_back("/proc/");
-  ignore_patterns_.push_back("/sys/");
-  ignore_patterns_.push_back("/dev/");
-}
+Tracker::Tracker() : Tracker("default_project") {}
 
 Tracker::Tracker(const std::string& project_name)
-    : project_name_(project_name),
+    : build_timestamp_(Utils::getCurrentTimestamp()),
+      project_name_(project_name),
       output_file_("build_record.yaml"),
       log_dir_("/tmp") {
   ignore_patterns_.push_back("/tmp/");
@@ -55,8 +48,8 @@ std::string Tracker::executeWithStrace(
   std::string strace_log =
       log_dir_ + "/strace_" + std::to_string(getpid()) + ".log";
   std::string strace_cmd =
-      "strace -e trace=openat,execve,execveat,creat -y -f -q -o " +
-      strace_log + " " + cmd_str;
+      "strace -e trace=openat,execve,execveat,creat -y -f -q -o " + strace_log +
+      " " + cmd_str;
 
   Logger::debug("Executing: " + strace_cmd);
 
@@ -185,25 +178,25 @@ bool Tracker::shouldIgnoreArtifact(const std::string& filepath) const {
   if (filepath.find("CMakeFiles/") != std::string::npos) {
     return true;
   }
-  
+
   // Ignore CMake cache and configuration files
   if (filepath.find("CMakeCache.txt") != std::string::npos ||
       filepath.find("cmake_install.cmake") != std::string::npos ||
       filepath.find("Makefile") != std::string::npos) {
     return true;
   }
-  
+
   // Ignore object files and temporary files
   if (filepath.size() >= 2 && filepath.substr(filepath.size() - 2) == ".o") {
     return true;
   }
-  
+
   // Ignore temporary and intermediate files
   if (filepath.find(".tmp") != std::string::npos ||
       filepath.find(".temp") != std::string::npos) {
     return true;
   }
-  
+
   // Use base ignore patterns
   return shouldIgnoreFile(filepath);
 }
@@ -231,6 +224,17 @@ std::string Tracker::joinCommand(
   return oss.str();
 }
 
+void Tracker::prepareBuildEnvironment() {
+  Logger::info("Preparing build environment...");
+
+  // Set SOURCE_DATE_EPOCH using the timestamp from constructor
+  Utils::setSourceDateEpoch(build_timestamp_);
+  
+  // Set compiler options for reproducible builds
+  std::string current_path = std::filesystem::current_path().string();
+  Utils::setCompilerOptions(current_path);
+}
+
 BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
   Logger::info("Starting build tracking for project: " + project_name_);
   Logger::info("Build command: " + joinCommand(build_command));
@@ -250,6 +254,15 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
   Logger::info("Found " + std::to_string(executables.size()) + " executables");
 
   BuildRecord record(project_name_);
+
+  // Set metadata information
+  record.setArchitecture(Utils::getArchitecture());
+  record.setDistribution(Utils::getDistribution());
+  record.setBuildPath(std::filesystem::current_path().string());
+  record.setBuildTimestamp(build_timestamp_);
+  record.setHostname(Utils::getHostname());
+  record.setLocale(Utils::getLocale());
+  record.setUmask(Utils::getUmask());
 
   // Process shared libraries
   for (const auto& so_file : so_files) {
@@ -309,18 +322,22 @@ void Tracker::detectBuildArtifacts(const std::string& strace_output,
   std::string line;
   std::set<std::string> created_files;
 
-  // With -y option, AT_FDCWD and other paths are resolved, so we can match paths directly
-  // Pattern matches: PID syscall(AT_FDCWD</path/to/dir>, "filename", ..., O_CREAT)
-  std::regex create_regex(R"(\d+\s+(?:openat|creat)\([^,]*<([^>]+)>,\s*\"([^\"]+)\"[^)]*O_CREAT)");
+  // With -y option, AT_FDCWD and other paths are resolved, so we can match
+  // paths directly Pattern matches: PID syscall(AT_FDCWD</path/to/dir>,
+  // "filename", ..., O_CREAT)
+  std::regex create_regex(
+      R"(\d+\s+(?:openat|creat)\([^,]*<([^>]+)>,\s*\"([^\"]+)\"[^)]*O_CREAT)");
   // Also match simple creat calls: PID creat("filepath", ...)
   std::regex creat_regex(R"(\d+\s+creat\(\"([^\"]+)\")");
-  // Match openat with absolute paths directly: openat(..., "/absolute/path", ..., O_CREAT)
-  std::regex absolute_create_regex(R"(\d+\s+openat\([^,]*,\s*\"(/[^\"]+)\"[^)]*O_CREAT)");
+  // Match openat with absolute paths directly: openat(..., "/absolute/path",
+  // ..., O_CREAT)
+  std::regex absolute_create_regex(
+      R"(\d+\s+openat\([^,]*,\s*\"(/[^\"]+)\"[^)]*O_CREAT)");
   std::smatch match;
 
   while (std::getline(iss, line)) {
     std::string filepath;
-    
+
     // Check for openat with AT_FDCWD resolved by -y option
     if (std::regex_search(line, match, create_regex)) {
       std::string base_dir = match[1].str();
@@ -335,7 +352,7 @@ void Tracker::detectBuildArtifacts(const std::string& strace_output,
     else if (std::regex_search(line, match, creat_regex)) {
       filepath = match[1].str();
     }
-    
+
     if (!filepath.empty() && std::filesystem::exists(filepath)) {
       Logger::debug("Found created file: " + filepath);
       created_files.insert(filepath);

@@ -83,8 +83,8 @@ std::ostream& operator<<(std::ostream& os, const DependencyPackage& package) {
 
 // Helper function to execute shell command and get output
 static std::string executeCommand(const std::string& command) {
-  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"),
-                                                pclose);
+  std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(command.c_str(), "r"),
+                                             pclose);
 
   if (!pipe) {
     throw std::runtime_error("Failed to execute command: " + command);

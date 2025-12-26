@@ -96,7 +96,17 @@ std::string BuildRecord::toString() const {
 
 void BuildRecord::saveToFile(const std::string& filepath) const {
   YAML::Node root;
-  root["project"] = project_name_;
+
+  // Add metadata section
+  YAML::Node metadata_node;
+  metadata_node["architecture"] = architecture_;
+  metadata_node["distribution"] = distribution_;
+  metadata_node["build_path"] = build_path_;
+  metadata_node["build_timestamp"] = build_timestamp_;
+  metadata_node["hostname"] = hostname_;
+  metadata_node["locale"] = locale_;
+  metadata_node["umask"] = umask_;
+  root["metadata"] = metadata_node;
 
   YAML::Node deps_node;
   auto deps = getAllDependencies();
@@ -173,6 +183,32 @@ BuildRecord BuildRecord::loadFromFile(const std::string& filepath) {
         BuildArtifact artifact(path, hash, type);
         record.addArtifact(artifact);
       }
+    }
+  }
+
+  // Load metadata section
+  if (root["metadata"]) {
+    const auto& metadata = root["metadata"];
+    if (metadata["architecture"]) {
+      record.architecture_ = metadata["architecture"].as<std::string>();
+    }
+    if (metadata["distribution"]) {
+      record.distribution_ = metadata["distribution"].as<std::string>();
+    }
+    if (metadata["build_path"]) {
+      record.build_path_ = metadata["build_path"].as<std::string>();
+    }
+    if (metadata["build_timestamp"]) {
+      record.build_timestamp_ = metadata["build_timestamp"].as<std::string>();
+    }
+    if (metadata["hostname"]) {
+      record.hostname_ = metadata["hostname"].as<std::string>();
+    }
+    if (metadata["locale"]) {
+      record.locale_ = metadata["locale"].as<std::string>();
+    }
+    if (metadata["umask"]) {
+      record.umask_ = metadata["umask"].as<std::string>();
     }
   }
 

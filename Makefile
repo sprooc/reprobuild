@@ -57,13 +57,13 @@ clean:
 .PHONY: debug
 debug:
 	@echo "Building in debug mode..."
-	@$$(MAKE) BUILD_TYPE=Debug configure build
+	@$(MAKE) BUILD_TYPE=Debug configure build
 
 # Debug build and test
 .PHONY: debug-test
 debug-test:
 	@echo "Building and testing in debug mode..."
-	@$$(MAKE) BUILD_TYPE=Debug configure build test
+	@$(MAKE) BUILD_TYPE=Debug configure build test
 
 # Install dependencies
 .PHONY: deps

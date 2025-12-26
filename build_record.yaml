@@ -1,5 +1,12 @@
-# Build Record for demo_project
-project: demo_project
+# Build Record for project
+metadata:
+  architecture: x86_64
+  distribution: Ubuntu 25.04
+  build_path: /home/sprooc/reprobuild
+  build_timestamp: 2025-12-26T09:43:00+00:00
+  hostname: sprooc
+  locale: LANG=en_US.UTF-8;LANGUAGE=;LC_CTYPE="en_US.UTF-8";LC_NUMERIC="en_US.UTF-8";LC_TIME="en_US.UTF-8";LC_COLLATE="en_US.UTF-8";LC_MONETARY="en_US.UTF-8";LC_MESSAGES="en_US.UTF-8";LC_PAPER="en_US.UTF-8";LC_NAME="en_US.UTF-8";LC_ADDRESS="en_US.UTF-8";LC_TELEPHONE="en_US.UTF-8";LC_MEASUREMENT="en_US.UTF-8";LC_IDENTIFICATION="en_US.UTF-8";LC_ALL=
+  umask: 0002
 dependencies:
   - name: binutils-x86-64-linux-gnu
     path: /usr/bin/ranlib
@@ -231,8 +238,8 @@ dependencies:
     hash: 103d30dafcda2d0e0375d3a17c82508ddf47d9617a1c09edde79092c3fe17929
 artifacts:
   - path: build/bin/reprobuild_tests
-    hash: 5002634268810707c3b1f3b7a208bef93f52a47bb68c51edd6e032f078439080
+    hash: fd4fc2a2c5d70296d38ec60acc3df7d4c5f6ea6526302669536d12ff74737a32
     type: executable
   - path: build/reprobuild
-    hash: 752ef0eb30a96e3e606d3ad39ab93a0739f8c30bd6bbe25df4fcdf8af2c553a0
+    hash: e3172f69aa3aad298a5b6f8f5f80f34ff82b33457ab6d8d3292c986bde43ffbb
     type: executable

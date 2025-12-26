@@ -45,10 +45,38 @@ class BuildRecord {
   const std::string& getProjectName() const { return project_name_; }
   void setProjectName(const std::string& name) { project_name_ = name; }
 
+  // Metadata setters and getters
+  void setArchitecture(const std::string& arch) { architecture_ = arch; }
+  void setDistribution(const std::string& dist) { distribution_ = dist; }
+  void setBuildPath(const std::string& path) { build_path_ = path; }
+  void setBuildTimestamp(const std::string& timestamp) {
+    build_timestamp_ = timestamp;
+  }
+  void setHostname(const std::string& hostname) { hostname_ = hostname; }
+  void setLocale(const std::string& locale) { locale_ = locale; }
+  void setUmask(const std::string& umask) { umask_ = umask; }
+
+  const std::string& getArchitecture() const { return architecture_; }
+  const std::string& getDistribution() const { return distribution_; }
+  const std::string& getBuildPath() const { return build_path_; }
+  const std::string& getBuildTimestamp() const { return build_timestamp_; }
+  const std::string& getHostname() const { return hostname_; }
+  const std::string& getLocale() const { return locale_; }
+  const std::string& getUmask() const { return umask_; }
+
  private:
   std::string project_name_;
   std::map<std::string, DependencyPackage> dependencies_;
   std::vector<BuildArtifact> artifacts_;
+
+  // Metadata fields
+  std::string architecture_;
+  std::string distribution_;
+  std::string build_path_;
+  std::string build_timestamp_;
+  std::string hostname_;
+  std::string locale_;
+  std::string umask_;
 };
 
 #endif  // BUILD_RECORD_H
