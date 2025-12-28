@@ -225,20 +225,20 @@ void setSourceDateEpoch(const std::string& timestamp) {
 
 void setCompilerOptions(const std::string& build_path) {
   Logger::info("Setting compiler options for reproducible builds...");
-  
+
   // Create -ffile-prefix-map option to normalize paths
   std::string prefix_map_option = "-ffile-prefix-map=" + build_path + "=.";
-  
+
   // Get existing compiler flags from environment
   const char* existing_cflags = std::getenv("CFLAGS");
   const char* existing_cxxflags = std::getenv("CXXFLAGS");
   const char* existing_cppflags = std::getenv("CPPFLAGS");
-  
+
   // Build new flag strings
   std::string new_cflags = prefix_map_option;
   std::string new_cxxflags = prefix_map_option;
   std::string new_cppflags = prefix_map_option;
-  
+
   if (existing_cflags) {
     new_cflags = std::string(existing_cflags) + " " + prefix_map_option;
   }
@@ -248,27 +248,28 @@ void setCompilerOptions(const std::string& build_path) {
   if (existing_cppflags) {
     new_cppflags = std::string(existing_cppflags) + " " + prefix_map_option;
   }
-  
+
   // Set environment variables
   if (setenv("CFLAGS", new_cflags.c_str(), 1) == 0) {
     Logger::debug("Set CFLAGS=" + new_cflags);
   } else {
     Logger::warn("Failed to set CFLAGS environment variable");
   }
-  
+
   if (setenv("CXXFLAGS", new_cxxflags.c_str(), 1) == 0) {
     Logger::debug("Set CXXFLAGS=" + new_cxxflags);
   } else {
     Logger::warn("Failed to set CXXFLAGS environment variable");
   }
-  
+
   if (setenv("CPPFLAGS", new_cppflags.c_str(), 1) == 0) {
     Logger::debug("Set CPPFLAGS=" + new_cppflags);
   } else {
     Logger::warn("Failed to set CPPFLAGS environment variable");
   }
-  
-  Logger::info("Compiler options configured with path mapping: " + build_path + " -> .");
+
+  Logger::info("Compiler options configured with path mapping: " + build_path +
+               " -> .");
 }
 
 }  // namespace Utils

@@ -229,7 +229,7 @@ void Tracker::prepareBuildEnvironment() {
 
   // Set SOURCE_DATE_EPOCH using the timestamp from constructor
   Utils::setSourceDateEpoch(build_timestamp_);
-  
+
   // Set compiler options for reproducible builds
   std::string current_path = std::filesystem::current_path().string();
   Utils::setCompilerOptions(current_path);
