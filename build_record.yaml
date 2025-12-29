@@ -3,7 +3,7 @@ metadata:
   architecture: x86_64
   distribution: Ubuntu 25.04
   build_path: /home/sprooc/reprobuild
-  build_timestamp: 2025-12-29T11:07:17+00:00
+  build_timestamp: 2025-12-29T11:50:27+00:00
   hostname: sprooc
   locale: LANG=en_US.UTF-8;LANGUAGE=;LC_CTYPE="en_US.UTF-8";LC_NUMERIC="en_US.UTF-8";LC_TIME="en_US.UTF-8";LC_COLLATE="en_US.UTF-8";LC_MONETARY="en_US.UTF-8";LC_MESSAGES="en_US.UTF-8";LC_PAPER="en_US.UTF-8";LC_NAME="en_US.UTF-8";LC_ADDRESS="en_US.UTF-8";LC_TELEPHONE="en_US.UTF-8";LC_MEASUREMENT="en_US.UTF-8";LC_IDENTIFICATION="en_US.UTF-8";LC_ALL=
   umask: 0002
@@ -16,6 +16,10 @@ dependencies:
     path: /usr/bin/cmake
     version: 3.31.6-1ubuntu1
     hash: 63e339c0858912c62402a9e5474e5c5f27037e613129011a4803d1b432322566
+  - name: cmake-data
+    path: /usr/share/cmake-3.31/Modules/CMakePlatformId.h.in
+    version: 3.31.6-1ubuntu1
+    hash: 748d2c991a6d940815f9b4af69b06d26eadf993629dd69b9b0de3c1d7f939086
   - name: coreutils
     path: /usr/bin/uname
     version: 9.5-1ubuntu1
@@ -53,9 +57,9 @@ dependencies:
     version: 2.41-6ubuntu1.2
     hash: a826fda57dc7fd530cf31ca3fc82944999cf57fce099c0dfc308d16ac1aebc3c
   - name: libc6-dev
-    path: /usr/lib/x86_64-linux-gnu/libc_nonshared.a
+    path: /usr/include/x86_64-linux-gnu/gnu/stubs.h
     version: 2.41-6ubuntu1.2
-    hash: 3341391290ddd596521a61152b4e2612f4625cc85f737d875b918f6cfb2b2786
+    hash: ef444295a0a9e8f5c40918399a00cc91ba0bd79774110cdf6e652baa6cfadb2e
   - name: libcom-err2
     path: /usr/lib/x86_64-linux-gnu/libcom_err.so.2.1
     version: 1.47.2-1ubuntu1
@@ -73,9 +77,9 @@ dependencies:
     version: 3.4.7-1
     hash: e489f7e3ee064c1707520e6aaf887a6367363aed70308b9845802070472b723b
   - name: libgcc-14-dev
-    path: /usr/lib/gcc/x86_64-linux-gnu/14/libgcc_s.so
+    path: /usr/lib/gcc/x86_64-linux-gnu/14/include/stdint.h
     version: 14.2.0-19ubuntu2
-    hash: 69a56a9993b7729b29b274e65016031c81f2397f176ed5ad44d59bd50425e0bd
+    hash: 86a7914ab7d6a18465a6fb9a7b54f945cad604fdbf3ca0d10e4e0254e0037911
   - name: libgcc-s1
     path: /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
     version: 15-20250404-0ubuntu1
@@ -93,9 +97,9 @@ dependencies:
     version: 1.21.3-4ubuntu2
     hash: e2b4c6b31556c3f6a48af9258b3b56d38b54aa41a715451769a6397f5ecd0fc5
   - name: libgtest-dev
-    path: /usr/lib/x86_64-linux-gnu/libgtest_main.a
+    path: /usr/include/gtest/internal/gtest-type-util.h
     version: 1.16.0-1
-    hash: 24335b26d38baddd9eba6e5ff4386eee73e9dcbd6507a104b0118943541f6800
+    hash: 94336b1703807db6d9d2b729b5a30cf53016fd236b14774af118467d27f94ad8
   - name: libhogweed6t64
     path: /usr/lib/x86_64-linux-gnu/libhogweed.so.6.10
     version: 3.10.1-1
@@ -200,6 +204,10 @@ dependencies:
     path: /usr/lib/x86_64-linux-gnu/libssl.so.3
     version: 3.4.1-1ubuntu4
     hash: 1ddc45fbe9ca5d300922b8a7cd6c05208d435fcf517ccc1e9e9c0d72e8a57ce3
+  - name: libstdc++-14-dev
+    path: /usr/include/x86_64-linux-gnu/c++/14/bits/time_members.h
+    version: 14.2.0-19ubuntu2
+    hash: 667060c46b396fadf2cc2927bf7c2a419785cc5d901223408203d261f068cefc
   - name: libstdc++6
     path: /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.34
     version: 15-20250404-0ubuntu1
@@ -224,6 +232,10 @@ dependencies:
     path: /usr/lib/x86_64-linux-gnu/libxxhash.so.0.8.3
     version: 0.8.3-2
     hash: bf9ac2b806e8d489bb8de72c270063fb21d58d457bececbbd22d60b1a5d0f71d
+  - name: libyaml-cpp-dev
+    path: /usr/include/yaml-cpp/yaml.h
+    version: 0.8.0+dfsg-7
+    hash: 946643e99e2f865887852f838a66130c54ed770645a73f2c5f8b71b9bb2b1488
   - name: libyaml-cpp0.8
     path: /usr/lib/x86_64-linux-gnu/libyaml-cpp.so.0.8.0
     version: 0.8.0+dfsg-7
@@ -232,6 +244,10 @@ dependencies:
     path: /usr/lib/x86_64-linux-gnu/libzstd.so.1.5.6
     version: 1.5.6+dfsg-2
     hash: 4cdaa615582c374a774506480b7bcaa408cc36368e04d2eae3ea30094c060c55
+  - name: linux-libc-dev
+    path: /usr/include/x86_64-linux-gnu/asm/types.h
+    version: 6.14.0-37.37
+    hash: b6bdcd528bce555b2ecb58e8a1624e3e13e09312c31318023c4e86b957e2b01f
   - name: locales
     path: /etc/locale.alias
     version: 2.41-6ubuntu1.2
@@ -246,8 +262,8 @@ dependencies:
     hash: 103d30dafcda2d0e0375d3a17c82508ddf47d9617a1c09edde79092c3fe17929
 artifacts:
   - path: build/bin/reprobuild_tests
-    hash: f833b3c7173291247396355c4c8b8903b13ab4618c0d111f1bc4735f0402969e
+    hash: ac5286f39bbd942c1e6e3302e1c6d10253966da620f0136a4120ebcffb959ea9
     type: executable
   - path: build/reprobuild
-    hash: 7a53925c15ecc8d46f667ee7c78a8f7160c04c779f0e72b0efcda5664aa84346
+    hash: 4f394ab2c2c60d97090d37ff97cd3de88f2e287a2f89ecc9eb12b9b8d4ea8a74
     type: executable

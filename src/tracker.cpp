@@ -113,6 +113,33 @@ std::set<std::string> Tracker::parseLibFiles(const std::string& strace_output) {
   return library_files;
 }
 
+std::set<std::string> Tracker::parseHeaderFiles(
+    const std::string& strace_output) {
+  std::set<std::string> header_files;
+  std::istringstream iss(strace_output);
+  std::string line;
+
+  // Match header files (.h, .hpp, .hxx, .hh, .H)
+  std::regex openat_regex(
+      R"(openat\([^,]+,\s*\"([^\"]*\.(?:h|hpp|hxx|hh|H)[^\"]*)\")");
+  std::smatch match;
+
+  while (std::getline(iss, line)) {
+    if (std::regex_search(line, match, openat_regex)) {
+      std::string filepath = match[1].str();
+
+      if (!std::filesystem::exists(filepath) || shouldIgnoreFile(filepath)) {
+        continue;
+      }
+
+      Logger::debug("Found header file: " + filepath);
+      header_files.insert(filepath);
+    }
+  }
+
+  return header_files;
+}
+
 std::set<std::string> Tracker::parseExecutables(
     const std::string& strace_output) {
   std::set<std::string> executables;
@@ -259,9 +286,11 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
   }
 
   auto library_files = parseLibFiles(strace_output);
+  auto header_files = parseHeaderFiles(strace_output);
   auto executables = parseExecutables(strace_output);
-  Logger::info("Found " + std::to_string(library_files.size()) +
-               " libraries");
+  Logger::info("Found " + std::to_string(library_files.size()) + " libraries");
+  Logger::info("Found " + std::to_string(header_files.size()) +
+               " header files");
   Logger::info("Found " + std::to_string(executables.size()) + " executables");
 
   BuildRecord record(project_name_);
@@ -290,6 +319,24 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
       }
     } catch (const std::exception& e) {
       Logger::warn("Error processing " + library_file + ": " + e.what());
+    }
+  }
+
+  // Process header files
+  for (const auto& header_file : header_files) {
+    try {
+      Logger::debug("Processing header file: " + header_file);
+
+      DependencyPackage dep = DependencyPackage::fromRawFile(header_file);
+      if (dep.isValid()) {
+        record.addDependency(dep);
+        Logger::debug("  Added: " + dep.getPackageName() + " v" +
+                      dep.getVersion());
+      } else {
+        Logger::debug("  Skipped invalid dependency: " + header_file);
+      }
+    } catch (const std::exception& e) {
+      Logger::warn("Error processing " + header_file + ": " + e.what());
     }
   }
 

@@ -23,28 +23,10 @@ endif()
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 # Find Google Test
-find_package(GTest QUIET)
-if(NOT GTest_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/03597a01ee50f33f9d08a7e8e509a2c7a12ab3e1.zip
-    )
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
-endif()
+find_package(GTest REQUIRED)
 
 # Find yaml-cpp
-find_package(yaml-cpp QUIET)
-if(NOT yaml-cpp_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-        yaml-cpp
-        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-        GIT_TAG yaml-cpp-0.8.0
-    )
-    FetchContent_MakeAvailable(yaml-cpp)
-endif()
+find_package(yaml-cpp REQUIRED)
 
 # Collect source files (excluding main executables for library)
 file(GLOB_RECURSE LIB_SOURCES "src/*.cpp")

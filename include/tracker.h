@@ -33,6 +33,7 @@ class Tracker {
 
   std::string executeWithStrace(const std::vector<std::string>& command);
   std::set<std::string> parseLibFiles(const std::string& strace_output);
+  std::set<std::string> parseHeaderFiles(const std::string& strace_output);
   std::set<std::string> parseExecutables(const std::string& strace_output);
   void detectBuildArtifacts(const std::string& strace_output,
                             BuildRecord& record);
