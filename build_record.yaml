@@ -3,7 +3,7 @@ metadata:
   architecture: x86_64
   distribution: Ubuntu 25.04
   build_path: /home/sprooc/reprobuild
-  build_timestamp: 2025-12-29T10:46:15+00:00
+  build_timestamp: 2025-12-29T11:07:17+00:00
   hostname: sprooc
   locale: LANG=en_US.UTF-8;LANGUAGE=;LC_CTYPE="en_US.UTF-8";LC_NUMERIC="en_US.UTF-8";LC_TIME="en_US.UTF-8";LC_COLLATE="en_US.UTF-8";LC_MONETARY="en_US.UTF-8";LC_MESSAGES="en_US.UTF-8";LC_PAPER="en_US.UTF-8";LC_NAME="en_US.UTF-8";LC_ADDRESS="en_US.UTF-8";LC_TELEPHONE="en_US.UTF-8";LC_MEASUREMENT="en_US.UTF-8";LC_IDENTIFICATION="en_US.UTF-8";LC_ALL=
   umask: 0002
@@ -246,8 +246,8 @@ dependencies:
     hash: 103d30dafcda2d0e0375d3a17c82508ddf47d9617a1c09edde79092c3fe17929
 artifacts:
   - path: build/bin/reprobuild_tests
-    hash: 88082cee2d0b7eb576d9c6475011edb9ca360d693bfd5d964c50a27270b3840a
+    hash: f833b3c7173291247396355c4c8b8903b13ab4618c0d111f1bc4735f0402969e
     type: executable
   - path: build/reprobuild
-    hash: 3437e193d3ec79b90b7941ce882bd37c88c7a631db72ecb17462baa433fbc067
+    hash: 7a53925c15ecc8d46f667ee7c78a8f7160c04c779f0e72b0efcda5664aa84346
     type: executable
