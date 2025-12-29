@@ -78,12 +78,13 @@ std::string Tracker::executeWithStrace(
   return strace_output;
 }
 
-std::set<std::string> Tracker::parseSoFiles(const std::string& strace_output) {
-  std::set<std::string> so_files;
+std::set<std::string> Tracker::parseLibFiles(const std::string& strace_output) {
+  std::set<std::string> library_files;
   std::istringstream iss(strace_output);
   std::string line;
 
-  std::regex openat_regex(R"(openat\([^,]+,\s*\"([^\"]*\.so[^\"]*)\")");
+  // Match both .so (dynamic) and .a (static) libraries
+  std::regex openat_regex(R"(openat\([^,]+,\s*\"([^\"]*\.(?:so|a)[^\"]*)\")");
   std::smatch match;
 
   while (std::getline(iss, line)) {
@@ -94,12 +95,22 @@ std::set<std::string> Tracker::parseSoFiles(const std::string& strace_output) {
         continue;
       }
 
-      Logger::debug("Found shared library: " + filepath);
-      so_files.insert(filepath);
+      // Determine library type for better logging
+      bool is_static =
+          filepath.size() >= 2 && filepath.substr(filepath.size() - 2) == ".a";
+      bool is_dynamic = filepath.find(".so") != std::string::npos;
+
+      if (is_static) {
+        Logger::debug("Found static library: " + filepath);
+      } else if (is_dynamic) {
+        Logger::debug("Found shared library: " + filepath);
+      }
+
+      library_files.insert(filepath);
     }
   }
 
-  return so_files;
+  return library_files;
 }
 
 std::set<std::string> Tracker::parseExecutables(
@@ -247,10 +258,10 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
     return BuildRecord(project_name_);
   }
 
-  auto so_files = parseSoFiles(strace_output);
+  auto library_files = parseLibFiles(strace_output);
   auto executables = parseExecutables(strace_output);
-  Logger::info("Found " + std::to_string(so_files.size()) +
-               " shared libraries");
+  Logger::info("Found " + std::to_string(library_files.size()) +
+               " libraries");
   Logger::info("Found " + std::to_string(executables.size()) + " executables");
 
   BuildRecord record(project_name_);
@@ -264,21 +275,21 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
   record.setLocale(Utils::getLocale());
   record.setUmask(Utils::getUmask());
 
-  // Process shared libraries
-  for (const auto& so_file : so_files) {
+  // Process library files (both shared and static)
+  for (const auto& library_file : library_files) {
     try {
-      Logger::debug("Processing shared library: " + so_file);
+      Logger::debug("Processing library file: " + library_file);
 
-      DependencyPackage dep = DependencyPackage::fromRawFile(so_file);
+      DependencyPackage dep = DependencyPackage::fromRawFile(library_file);
       if (dep.isValid()) {
         record.addDependency(dep);
         Logger::debug("  Added: " + dep.getPackageName() + " v" +
                       dep.getVersion());
       } else {
-        Logger::debug("  Skipped invalid dependency: " + so_file);
+        Logger::debug("  Skipped invalid dependency: " + library_file);
       }
     } catch (const std::exception& e) {
-      Logger::warn("Error processing " + so_file + ": " + e.what());
+      Logger::warn("Error processing " + library_file + ": " + e.what());
     }
   }
 
