@@ -40,6 +40,8 @@ class Tracker {
   std::string makeRelativePath(const std::string& filepath,
                                const std::string& base_dir);
   bool shouldIgnoreFile(const std::string& filepath) const;
+  bool shouldIgnoreLib(const std::string& filepath) const;
+  bool shouldIgnoreHeader(const std::string& filepath) const;
   bool shouldIgnoreExecutable(const std::string& filepath) const;
   bool shouldIgnoreArtifact(const std::string& filepath) const;
   std::string joinCommand(const std::vector<std::string>& command) const;

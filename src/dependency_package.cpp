@@ -118,9 +118,17 @@ DependencyPackage DependencyPackage::fromRawFile(
     std::string real_path = executeCommand(realpath_command);
 
     // Step 2: Use dpkg -S to find which package owns the file
+    // Try raw file path first, then real path if needed
     std::string dpkg_command =
-        "dpkg -S " + real_path + " 2>/dev/null | head -1 | cut -d: -f1";
+        "dpkg -S " + raw_file_path + " 2>/dev/null | head -1 | cut -d: -f1";
     std::string package_name = executeCommand(dpkg_command);
+
+    if (package_name.empty() || package_name.substr(0, 12) == "diversion by") {
+      // If raw path failed, try with real path
+      dpkg_command =
+          "dpkg -S " + real_path + " 2>/dev/null | head -1 | cut -d: -f1";
+      package_name = executeCommand(dpkg_command);
+    }
 
     if (package_name.empty()) {
       throw std::runtime_error("Could not find package owner for file: " +

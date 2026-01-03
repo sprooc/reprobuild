@@ -22,9 +22,6 @@ make ctest
 
 # Set log directory
 ./build/reprobuild -l ./logs make
-
-# Set output file
-./build/reprobuild -o build_record.yaml make
 ```
 
 ## Build Record YAML

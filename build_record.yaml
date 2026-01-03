@@ -3,15 +3,19 @@ metadata:
   architecture: x86_64
   distribution: Ubuntu 25.04
   build_path: /home/sprooc/reprobuild
-  build_timestamp: 2025-12-29T11:50:27+00:00
+  build_timestamp: 2025-12-30T13:29:00+00:00
   hostname: sprooc
   locale: LANG=en_US.UTF-8;LANGUAGE=;LC_CTYPE="en_US.UTF-8";LC_NUMERIC="en_US.UTF-8";LC_TIME="en_US.UTF-8";LC_COLLATE="en_US.UTF-8";LC_MONETARY="en_US.UTF-8";LC_MESSAGES="en_US.UTF-8";LC_PAPER="en_US.UTF-8";LC_NAME="en_US.UTF-8";LC_ADDRESS="en_US.UTF-8";LC_TELEPHONE="en_US.UTF-8";LC_MEASUREMENT="en_US.UTF-8";LC_IDENTIFICATION="en_US.UTF-8";LC_ALL=
   umask: 0002
 dependencies:
-  - name: binutils-x86-64-linux-gnu
+  - name: binutils
     path: /usr/bin/x86_64-linux-gnu-ranlib
     version: 2.44-3ubuntu1.3
     hash: 10d78a6a962df8e725638968d31994d97b7a763e315a732c46795c1163a6e640
+  - name: binutils-x86-64-linux-gnu
+    path: /usr/lib/x86_64-linux-gnu/bfd-plugins/libdep.so
+    version: 2.44-3ubuntu1.3
+    hash: 6253d94cb2cc5e7634007a92979fbee25e7e7729e8b1a1515d3588b991813e2e
   - name: cmake
     path: /usr/bin/cmake
     version: 3.31.6-1ubuntu1
@@ -262,8 +266,8 @@ dependencies:
     hash: 103d30dafcda2d0e0375d3a17c82508ddf47d9617a1c09edde79092c3fe17929
 artifacts:
   - path: build/bin/reprobuild_tests
-    hash: ac5286f39bbd942c1e6e3302e1c6d10253966da620f0136a4120ebcffb959ea9
+    hash: 4974831c64ad80a68ec27baac42fe8f256e3525699b0901118e6a9e8ed419eb3
     type: executable
   - path: build/reprobuild
-    hash: 4f394ab2c2c60d97090d37ff97cd3de88f2e287a2f89ecc9eb12b9b8d4ea8a74
+    hash: 7a683e2d833dab6099656775e12ca2fe67f745773b4a9c8e092a5665d0ec2019
     type: executable

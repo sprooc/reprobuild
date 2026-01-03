@@ -91,7 +91,7 @@ std::set<std::string> Tracker::parseLibFiles(const std::string& strace_output) {
     if (std::regex_search(line, match, openat_regex)) {
       std::string filepath = match[1].str();
 
-      if (!std::filesystem::exists(filepath) || shouldIgnoreFile(filepath)) {
+      if (!std::filesystem::exists(filepath) || shouldIgnoreLib(filepath)) {
         continue;
       }
 
@@ -128,7 +128,7 @@ std::set<std::string> Tracker::parseHeaderFiles(
     if (std::regex_search(line, match, openat_regex)) {
       std::string filepath = match[1].str();
 
-      if (!std::filesystem::exists(filepath) || shouldIgnoreFile(filepath)) {
+      if (!std::filesystem::exists(filepath) || shouldIgnoreHeader(filepath)) {
         continue;
       }
 
@@ -179,6 +179,18 @@ bool Tracker::shouldIgnoreFile(const std::string& filepath) const {
   return false;
 }
 
+bool Tracker::shouldIgnoreLib(const std::string& filepath) const {
+  return shouldIgnoreFile(filepath);
+}
+
+bool Tracker::shouldIgnoreHeader(const std::string& filepath) const {
+  if (filepath[0] != '/') {
+    // Ignore relative paths
+    return true;
+  }
+  return shouldIgnoreFile(filepath);
+}
+
 bool Tracker::shouldIgnoreExecutable(const std::string& filepath) const {
   // Ignore common shell and system utilities that are not build dependencies
   static const std::vector<std::string> ignore_execs = {
@@ -189,6 +201,11 @@ bool Tracker::shouldIgnoreExecutable(const std::string& filepath) const {
       "/bin/rm",      "/bin/mkdir",     "/usr/bin/test",    "/usr/bin/[",
       "/bin/true",    "/bin/false"};
 
+  if (filepath[0] != '/') {
+    // Ignore relative paths
+    return true;
+  }
+  
   for (const auto& ignored : ignore_execs) {
     if (filepath == ignored) {
       return true;
