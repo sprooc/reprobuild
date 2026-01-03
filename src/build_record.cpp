@@ -106,6 +106,7 @@ void BuildRecord::saveToFile(const std::string& filepath) const {
   metadata_node["hostname"] = hostname_;
   metadata_node["locale"] = locale_;
   metadata_node["umask"] = umask_;
+  metadata_node["random_seed"] = random_seed_;
   root["metadata"] = metadata_node;
 
   YAML::Node deps_node;

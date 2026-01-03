@@ -19,7 +19,8 @@ Tracker::Tracker(const std::string& project_name)
     : build_timestamp_(Utils::getCurrentTimestamp()),
       project_name_(project_name),
       output_file_("build_record.yaml"),
-      log_dir_("/tmp") {
+      log_dir_("/tmp"),
+      random_seed_("0") {
   ignore_patterns_.push_back("/tmp/");
   ignore_patterns_.push_back("/proc/");
   ignore_patterns_.push_back("/sys/");
@@ -205,7 +206,7 @@ bool Tracker::shouldIgnoreExecutable(const std::string& filepath) const {
     // Ignore relative paths
     return true;
   }
-  
+
   for (const auto& ignored : ignore_execs) {
     if (filepath == ignored) {
       return true;
@@ -279,6 +280,24 @@ std::string Tracker::joinCommand(
   return oss.str();
 }
 
+void Tracker::setCompilerOptions(const std::string& build_path) {
+  Logger::info("Setting compiler options for reproducible builds...");
+
+  std::string comp_opts;
+  comp_opts.reserve(256);
+
+  // Create -ffile-prefix-map option to normalize paths
+  std::string prefix_map_option = " -ffile-prefix-map=" + build_path + "=.";
+  comp_opts.append(prefix_map_option);
+  // Set random seed
+  std::string seed_option = " -frandom-seed=" + random_seed_;
+  comp_opts.append(seed_option);
+
+  Utils::appendEnvVar("CFLAGS", comp_opts);
+  Utils::appendEnvVar("CXXFLAGS", comp_opts);
+  Utils::appendEnvVar("CPPFLAGS", comp_opts);
+}
+
 void Tracker::prepareBuildEnvironment() {
   Logger::info("Preparing build environment...");
 
@@ -287,7 +306,7 @@ void Tracker::prepareBuildEnvironment() {
 
   // Set compiler options for reproducible builds
   std::string current_path = std::filesystem::current_path().string();
-  Utils::setCompilerOptions(current_path);
+  setCompilerOptions(current_path);
 }
 
 BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
@@ -320,6 +339,7 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
   record.setHostname(Utils::getHostname());
   record.setLocale(Utils::getLocale());
   record.setUmask(Utils::getUmask());
+  record.setRandomSeed(random_seed_);
 
   // Process library files (both shared and static)
   for (const auto& library_file : library_files) {

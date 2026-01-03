@@ -30,7 +30,9 @@ class Tracker {
   std::string log_dir_;
   std::vector<std::string> ignore_patterns_;
   BuildRecord last_build_record_;
+  std::string random_seed_;
 
+  void setCompilerOptions(const std::string& build_path);
   std::string executeWithStrace(const std::vector<std::string>& command);
   std::set<std::string> parseLibFiles(const std::string& strace_output);
   std::set<std::string> parseHeaderFiles(const std::string& strace_output);
@@ -46,11 +48,6 @@ class Tracker {
   bool shouldIgnoreArtifact(const std::string& filepath) const;
   std::string joinCommand(const std::vector<std::string>& command) const;
 
-  // Metadata collection methods
-  std::string getArchitecture() const;
-  std::string getDistribution() const;
-  std::string getCurrentTimestamp() const;
-  std::string getHostname() const;
 };
 
 #endif  // DEPENDENCY_TRACKER_H

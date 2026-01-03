@@ -223,53 +223,21 @@ void setSourceDateEpoch(const std::string& timestamp) {
   }
 }
 
-void setCompilerOptions(const std::string& build_path) {
-  Logger::info("Setting compiler options for reproducible builds...");
+void appendEnvVar(const std::string& name, const std::string& value) {
+  const char* existing = std::getenv(name.c_str());
+  std::string updated_value;
 
-  // Create -ffile-prefix-map option to normalize paths
-  std::string prefix_map_option = "-ffile-prefix-map=" + build_path + "=.";
-
-  // Get existing compiler flags from environment
-  const char* existing_cflags = std::getenv("CFLAGS");
-  const char* existing_cxxflags = std::getenv("CXXFLAGS");
-  const char* existing_cppflags = std::getenv("CPPFLAGS");
-
-  // Build new flag strings
-  std::string new_cflags = prefix_map_option;
-  std::string new_cxxflags = prefix_map_option;
-  std::string new_cppflags = prefix_map_option;
-
-  if (existing_cflags) {
-    new_cflags = std::string(existing_cflags) + " " + prefix_map_option;
-  }
-  if (existing_cxxflags) {
-    new_cxxflags = std::string(existing_cxxflags) + " " + prefix_map_option;
-  }
-  if (existing_cppflags) {
-    new_cppflags = std::string(existing_cppflags) + " " + prefix_map_option;
-  }
-
-  // Set environment variables
-  if (setenv("CFLAGS", new_cflags.c_str(), 1) == 0) {
-    Logger::debug("Set CFLAGS=" + new_cflags);
+  if (existing && existing[0] != '\0') {
+    updated_value = std::string(existing) + " " + value;
   } else {
-    Logger::warn("Failed to set CFLAGS environment variable");
+    updated_value = value;
   }
 
-  if (setenv("CXXFLAGS", new_cxxflags.c_str(), 1) == 0) {
-    Logger::debug("Set CXXFLAGS=" + new_cxxflags);
+  if (setenv(name.c_str(), updated_value.c_str(), 1) == 0) {
+    Logger::debug("Set " + name + "=" + updated_value);
   } else {
-    Logger::warn("Failed to set CXXFLAGS environment variable");
+    Logger::warn("Failed to set " + name + " environment variable");
   }
-
-  if (setenv("CPPFLAGS", new_cppflags.c_str(), 1) == 0) {
-    Logger::debug("Set CPPFLAGS=" + new_cppflags);
-  } else {
-    Logger::warn("Failed to set CPPFLAGS environment variable");
-  }
-
-  Logger::info("Compiler options configured with path mapping: " + build_path +
-               " -> .");
 }
 
 }  // namespace Utils

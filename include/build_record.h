@@ -55,6 +55,7 @@ class BuildRecord {
   void setHostname(const std::string& hostname) { hostname_ = hostname; }
   void setLocale(const std::string& locale) { locale_ = locale; }
   void setUmask(const std::string& umask) { umask_ = umask; }
+  void setRandomSeed(const std::string& seed) { random_seed_ = seed; }
 
   const std::string& getArchitecture() const { return architecture_; }
   const std::string& getDistribution() const { return distribution_; }
@@ -63,6 +64,7 @@ class BuildRecord {
   const std::string& getHostname() const { return hostname_; }
   const std::string& getLocale() const { return locale_; }
   const std::string& getUmask() const { return umask_; }
+  const std::string& getRandomSeed() const { return random_seed_; }
 
  private:
   std::string project_name_;
@@ -77,6 +79,7 @@ class BuildRecord {
   std::string hostname_;
   std::string locale_;
   std::string umask_;
+  std::string random_seed_;
 };
 
 #endif  // BUILD_RECORD_H

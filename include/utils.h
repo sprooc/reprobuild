@@ -12,7 +12,7 @@ std::string getHostname();
 std::string getLocale();
 std::string getUmask();
 void setSourceDateEpoch(const std::string& timestamp);
-void setCompilerOptions(const std::string& build_path);
+void appendEnvVar(const std::string& name, const std::string& value);
 }  // namespace Utils
 
 #endif  // UTILS_H
