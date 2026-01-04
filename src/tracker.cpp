@@ -340,6 +340,7 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
   record.setLocale(Utils::getLocale());
   record.setUmask(Utils::getUmask());
   record.setRandomSeed(random_seed_);
+  record.setBuildCommand(joinCommand(build_command));
 
   // Process library files (both shared and static)
   for (const auto& library_file : library_files) {
