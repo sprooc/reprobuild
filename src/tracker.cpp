@@ -10,6 +10,7 @@
 #include <regex>
 #include <sstream>
 
+#include "interceptor_embedded.h"
 #include "logger.h"
 #include "utils.h"
 
@@ -20,7 +21,8 @@ Tracker::Tracker(const std::string& project_name)
       project_name_(project_name),
       output_file_("build_record.yaml"),
       log_dir_("/tmp"),
-      random_seed_("0") {
+      random_seed_("0"),
+      interceptor_lib_path_("") {
   ignore_patterns_.push_back("/tmp/");
   ignore_patterns_.push_back("/proc/");
   ignore_patterns_.push_back("/sys/");
@@ -280,6 +282,57 @@ std::string Tracker::joinCommand(
   return oss.str();
 }
 
+std::string Tracker::getInterceptorLibraryPath() const {
+  Logger::debug("Extracting embedded execve interceptor library...");
+
+  // Create temporary file for the interceptor library
+  std::string lib_path =
+      log_dir_ + "/reprobuild_interceptor_" + std::to_string(getpid()) + ".so";
+
+  try {
+    // Write embedded library data to temporary file
+    std::ofstream lib_file(lib_path, std::ios::binary);
+    if (!lib_file.is_open()) {
+      Logger::warn("Failed to create temporary interceptor library file: " +
+                   lib_path);
+      return "";
+    }
+
+    lib_file.write(
+        reinterpret_cast<const char*>(EmbeddedInterceptor::INTERCEPTOR_DATA),
+        EmbeddedInterceptor::INTERCEPTOR_SIZE);
+    lib_file.close();
+
+    // Verify the file was written correctly
+    if (!std::filesystem::exists(lib_path)) {
+      Logger::warn("Failed to extract interceptor library to: " + lib_path);
+      return "";
+    }
+
+    // Make the file executable
+    std::filesystem::permissions(lib_path,
+                                 std::filesystem::perms::owner_read |
+                                     std::filesystem::perms::owner_write |
+                                     std::filesystem::perms::owner_exec |
+                                     std::filesystem::perms::group_read |
+                                     std::filesystem::perms::group_exec |
+                                     std::filesystem::perms::others_read |
+                                     std::filesystem::perms::others_exec);
+
+    Logger::debug("Successfully extracted interceptor library to: " + lib_path);
+    Logger::debug("Library size: " +
+                  std::to_string(EmbeddedInterceptor::INTERCEPTOR_SIZE) +
+                  " bytes");
+
+    return lib_path;
+
+  } catch (const std::exception& e) {
+    Logger::warn("Error extracting interceptor library: " +
+                 std::string(e.what()));
+    return "";
+  }
+}
+
 void Tracker::setCompilerOptions(const std::string& build_path) {
   Logger::info("Setting compiler options for reproducible builds...");
 
@@ -296,6 +349,7 @@ void Tracker::setCompilerOptions(const std::string& build_path) {
   Utils::appendEnvVar("CFLAGS", comp_opts);
   Utils::appendEnvVar("CXXFLAGS", comp_opts);
   Utils::appendEnvVar("CPPFLAGS", comp_opts);
+  Utils::appendEnvVar("REPROBUILD_COMPILER_FLAGS", comp_opts);
 }
 
 void Tracker::prepareBuildEnvironment() {
@@ -307,6 +361,14 @@ void Tracker::prepareBuildEnvironment() {
   // Set compiler options for reproducible builds
   std::string current_path = std::filesystem::current_path().string();
   setCompilerOptions(current_path);
+
+  // Load the interceptor library
+  interceptor_lib_path_ = getInterceptorLibraryPath();
+  if (!interceptor_lib_path_.empty()) {
+    Utils::appendEnvVar("LD_PRELOAD", interceptor_lib_path_);
+  } else {
+    Logger::warn("Interceptor library path is empty, build tracking may fail.");
+  }
 }
 
 BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {

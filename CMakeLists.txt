@@ -32,13 +32,36 @@ find_package(yaml-cpp REQUIRED)
 file(GLOB_RECURSE LIB_SOURCES "src/*.cpp")
 list(REMOVE_ITEM LIB_SOURCES 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/reprobuild.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/interceptor.cpp"
 )
 file(GLOB_RECURSE HEADERS "include/*.h" "include/*.hpp")
+
+# Create the execve interceptor shared library
+add_library(reprobuild_interceptor SHARED src/interceptor.cpp)
+target_link_libraries(reprobuild_interceptor dl)
+set_target_properties(reprobuild_interceptor PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    OUTPUT_NAME "reprobuild_interceptor"
+)
+
+# Generate embedded interceptor header from built library
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/interceptor_embedded.h
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_embedded_lib.py $<TARGET_FILE:reprobuild_interceptor> ${CMAKE_CURRENT_SOURCE_DIR}/include/interceptor_embedded.h
+    DEPENDS reprobuild_interceptor ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_embedded_lib.py
+    COMMENT "Generating embedded interceptor library header"
+)
+
+# Create custom target for the embedded header
+add_custom_target(generate_embedded_interceptor 
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/interceptor_embedded.h
+)
 
 # Create library for shared code
 add_library(reprobuild_lib ${LIB_SOURCES} ${HEADERS})
 target_link_libraries(reprobuild_lib yaml-cpp)
+# Make sure the embedded header is generated before building the main library
+add_dependencies(reprobuild_lib generate_embedded_interceptor)
 
 # Create executable
 add_executable(${PROJECT_NAME} src/main.cpp)

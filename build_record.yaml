@@ -3,7 +3,7 @@ metadata:
   architecture: x86_64
   distribution: Ubuntu 25.04
   build_path: /home/sprooc/reprobuild
-  build_timestamp: 2026-01-03T14:58:34+00:00
+  build_timestamp: 2026-01-04T12:02:35+00:00
   hostname: sprooc
   locale: LANG=en_US.UTF-8;LANGUAGE=;LC_CTYPE="en_US.UTF-8";LC_NUMERIC="en_US.UTF-8";LC_TIME="en_US.UTF-8";LC_COLLATE="en_US.UTF-8";LC_MONETARY="en_US.UTF-8";LC_MESSAGES="en_US.UTF-8";LC_PAPER="en_US.UTF-8";LC_NAME="en_US.UTF-8";LC_ADDRESS="en_US.UTF-8";LC_TELEPHONE="en_US.UTF-8";LC_MEASUREMENT="en_US.UTF-8";LC_IDENTIFICATION="en_US.UTF-8";LC_ALL=
   umask: 0002
@@ -77,6 +77,10 @@ dependencies:
     path: /usr/lib/x86_64-linux-gnu/libcurl.so.4.8.0
     version: 8.12.1-3ubuntu1
     hash: f841909a435eb926b01129e516de9752bc9b95dbee1275fbd5ae4901a30d96eb
+  - name: libexpat1
+    path: /usr/lib/x86_64-linux-gnu/libexpat.so.1.10.2
+    version: 2.7.1-1
+    hash: 84683025e1ce187ce323e36c5b79fd92e22e07e64768fe5813feac05c7e352e0
   - name: libffi8
     path: /usr/lib/x86_64-linux-gnu/libffi.so.8.1.4
     version: 3.4.7-1
@@ -261,14 +265,21 @@ dependencies:
     path: /usr/bin/make
     version: 4.4.1-1
     hash: caee5a3413df4f67064bd4b16428e09bbcbdeaa47b94bec9482b6abd02fe6a61
+  - name: python3-minimal
+    path: /usr/bin/python3.13
+    version: 3.13.3-1
+    hash: 4d592f988d07e43f8efe78c0573e4219c9c2510d956c40c6a4e4170bb99e55d5
   - name: zlib1g
     path: /usr/lib/x86_64-linux-gnu/libz.so.1.3.1
     version: 1:1.3.dfsg+really1.3.1-1ubuntu1
     hash: 103d30dafcda2d0e0375d3a17c82508ddf47d9617a1c09edde79092c3fe17929
 artifacts:
   - path: build/bin/reprobuild_tests
-    hash: 0220e4989755099dd65686acfdb3b9cadeb899344103864da81063ce0463e7ab
+    hash: 65a9095aa53b73756fe781e21da72248191b6186eb00f8e50251d842ebb2d7f4
     type: executable
+  - path: build/libreprobuild_interceptor.so
+    hash: 2dc8e142109f0597c066d2c0ce1552e7b31a77417eeaf091e41c080a11b72ce5
+    type: shared_library
   - path: build/reprobuild
-    hash: 8644fd3302c61371d30d564533b91a6e335750edf9547f85d6fef67323eb2c07
+    hash: 34998ec1c75a891f7615b47733ec52361c01534e6fabcdb91845795be176c3b4
     type: executable

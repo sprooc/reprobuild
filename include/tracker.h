@@ -31,8 +31,10 @@ class Tracker {
   std::vector<std::string> ignore_patterns_;
   BuildRecord last_build_record_;
   std::string random_seed_;
+  std::string interceptor_lib_path_;
 
   void setCompilerOptions(const std::string& build_path);
+  std::string getInterceptorLibraryPath() const;
   std::string executeWithStrace(const std::vector<std::string>& command);
   std::set<std::string> parseLibFiles(const std::string& strace_output);
   std::set<std::string> parseHeaderFiles(const std::string& strace_output);
@@ -47,7 +49,6 @@ class Tracker {
   bool shouldIgnoreExecutable(const std::string& filepath) const;
   bool shouldIgnoreArtifact(const std::string& filepath) const;
   std::string joinCommand(const std::vector<std::string>& command) const;
-
 };
 
 #endif  // DEPENDENCY_TRACKER_H
