@@ -101,6 +101,7 @@ void BuildRecord::saveToFile(const std::string& filepath) const {
   YAML::Node metadata_node;
   metadata_node["architecture"] = architecture_;
   metadata_node["distribution"] = distribution_;
+  metadata_node["build_cmd"] = build_cmd_;
   metadata_node["build_path"] = build_path_;
   metadata_node["build_timestamp"] = build_timestamp_;
   metadata_node["hostname"] = hostname_;

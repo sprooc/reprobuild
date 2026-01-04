@@ -87,3 +87,12 @@ artifacts:
 - **path**: 构建产物的路径
 - **hash**: 构建产物的SHA256校验和，用于验证产物一致性。实验的目标就是在容器复现构建环境中生成的产物与原始产物的hash值一致。
 - **type**: 构建产物的类型（executable/library）
+
+## Notes
+
+### 2026/1/4
+1. yaml文件中添加了build_cmd字段，记录了具体的构建命令，方便复现。
+2. 添加了random_seed，用于在构建过程中传递给编译器，确保每次构建时使用相同的随机种子。例如`-frandom-seed=0`。
+3. 有些项目不会将`CFLAGS`等环境变量传递给编译器，导致-ffile-prefix-map等选项不能生效。现在使用了`LD_PRELOAD`的方式拦截`execve`调用，对所有编译器命令添加这些选项，确保路径映射等选项生效。具体做法：
+    - 设置环境变量`LD_PRELOAD`，指向拦截库`libreprobuild_interceptor.so`。
+    - 将之前设置到`CFLAGS`的值同样设置到环境变量`REPROBUILD_COMPILER_FLAGS`，包含需要传递给编译器的选项，例如`-ffile-prefix-map=/home/user/project=.`和`-frandom-seed=0`。拦截函数会读取这个环境变量，并将其内容添加到编译器命令行参数中。
