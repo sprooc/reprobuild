@@ -78,6 +78,7 @@ int main(int argc, char* argv[]) {
 
   Preprocessor preprocessor(build_info);
   preprocessor.prepareBuildEnvironment();
+  preprocessor.fixMakefile();
 
   build_info->fillBuildRecordMetadata();
 

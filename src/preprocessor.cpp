@@ -1,13 +1,14 @@
 #include "preprocessor.h"
+#include "canonicalizer.h"
+#include <unistd.h>
 
 #include <filesystem>
+#include <regex>
 #include <fstream>
 
 #include "interceptor_embedded.h"
 #include "logger.h"
 #include "utils.h"
-#include <unistd.h>
-
 
 std::string Preprocessor::getInterceptorLibraryPath() const {
   Logger::debug("Extracting embedded execve interceptor library...");
@@ -96,4 +97,70 @@ void Preprocessor::prepareBuildEnvironment() {
   } else {
     Logger::warn("Interceptor library path is empty, build tracking may fail.");
   }
+}
+
+void Preprocessor::fixMakefile() {
+
+  std::string build_cmd = build_info_->build_command_;
+  if (build_cmd.find("make") == std::string::npos) {
+    Logger::debug(
+        "Build command does not contain 'make', skipping makefile fixing");
+    return;
+  }
+
+  // Parse build command to find make execution directory
+  std::string make_dir = ".";  // Default to current directory
+
+  // Check for "cd <dir> && make" pattern
+  std::regex cd_make_pattern(R"(cd\s+([^\s;&|]+)\s*&&[^;]*make)");
+  std::smatch match;
+
+  if (std::regex_search(build_cmd, match, cd_make_pattern)) {
+    make_dir = match[1].str();
+    Logger::info("Found 'cd && make' pattern, make directory: " + make_dir);
+  } else {
+    Logger::debug("No 'cd && make' pattern found, using current directory");
+  }
+
+  // Convert relative path to absolute
+  std::filesystem::path abs_make_dir;
+  try {
+    if (std::filesystem::path(make_dir).is_relative()) {
+      abs_make_dir = std::filesystem::current_path() / make_dir;
+    } else {
+      abs_make_dir = make_dir;
+    }
+    abs_make_dir = std::filesystem::canonical(abs_make_dir);
+  } catch (const std::exception& e) {
+    Logger::warn("Failed to resolve make directory: " + std::string(e.what()));
+    abs_make_dir = std::filesystem::current_path();
+  }
+
+  Logger::debug("Make execution directory: " + abs_make_dir.string());
+
+  // Find Makefile in the make directory
+  std::vector<std::string> makefile_candidates = {"Makefile", "makefile",
+                                                  "GNUmakefile"};
+
+  std::string makefile_path;
+  for (const auto& candidate : makefile_candidates) {
+    std::filesystem::path candidate_path = abs_make_dir / candidate;
+    if (std::filesystem::exists(candidate_path)) {
+      makefile_path = candidate_path.string();
+      Logger::info("Found makefile: " + makefile_path);
+      break;
+    }
+  }
+
+  if (makefile_path.empty()) {
+    Logger::warn("No makefile found in " + abs_make_dir.string());
+    return;
+  }
+
+  Canonicalizer canon;
+  canon.add_default_rules();
+  canon.apply_to_file(makefile_path);
+
+  Logger::info("Successfully applied reproducible build fixes to: " +
+               makefile_path);
 }

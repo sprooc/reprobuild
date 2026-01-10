@@ -9,6 +9,7 @@ class Preprocessor {
   Preprocessor(std::shared_ptr<BuildInfo> build_info)
       : build_info_(build_info) {}
   void prepareBuildEnvironment();
+  void fixMakefile();
 
  private:
   std::shared_ptr<BuildInfo> build_info_;

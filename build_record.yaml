@@ -4,7 +4,7 @@ metadata:
   distribution: Ubuntu 25.04
   build_cmd: make
   build_path: /home/sprooc/reprobuild
-  build_timestamp: 2026-01-10T11:57:41+00:00
+  build_timestamp: 2026-01-10T12:14:09+00:00
   hostname: sprooc
   locale: LANG=en_US.UTF-8;LANGUAGE=;LC_CTYPE="en_US.UTF-8";LC_NUMERIC="en_US.UTF-8";LC_TIME="en_US.UTF-8";LC_COLLATE="en_US.UTF-8";LC_MONETARY="en_US.UTF-8";LC_MESSAGES="en_US.UTF-8";LC_PAPER="en_US.UTF-8";LC_NAME="en_US.UTF-8";LC_ADDRESS="en_US.UTF-8";LC_TELEPHONE="en_US.UTF-8";LC_MEASUREMENT="en_US.UTF-8";LC_IDENTIFICATION="en_US.UTF-8";LC_ALL=
   umask: 0002
@@ -282,5 +282,5 @@ artifacts:
     hash: 2dc8e142109f0597c066d2c0ce1552e7b31a77417eeaf091e41c080a11b72ce5
     type: shared_library
   - path: build/reprobuild
-    hash: 7f05dc5b590d900336b2c6a243b56d0f82dad781551621d0a3202fe6eb62db27
+    hash: 75ab6504456d5b2189d1c034e47e2bc6bb6b9d0c1a6bab460ff4a417e1ae4c5f
     type: executable
