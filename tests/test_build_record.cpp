@@ -14,7 +14,7 @@ class BuildRecordTest : public ::testing::Test {
     curl_pkg = DependencyPackage("curl", "/usr/lib/libcurl.so", "7.81.0",
                                  "sha256:ghi789");
 
-    record = BuildRecord("test_project");
+    record = BuildRecord("");
   }
 
   DependencyPackage openssl_pkg;

@@ -372,7 +372,6 @@ void Tracker::prepareBuildEnvironment() {
 }
 
 BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
-  Logger::info("Starting build tracking for project: " + project_name_);
   Logger::info("Build command: " + joinCommand(build_command));
 
   std::string strace_output;
