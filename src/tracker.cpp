@@ -2,7 +2,6 @@
 
 #include <unistd.h>
 
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -14,45 +13,24 @@
 #include "logger.h"
 #include "utils.h"
 
-Tracker::Tracker() : Tracker("default_project") {}
-
-Tracker::Tracker(const std::string& project_name)
-    : build_timestamp_(Utils::getCurrentTimestamp()),
-      project_name_(project_name),
-      output_file_("build_record.yaml"),
-      log_dir_("/tmp"),
-      random_seed_("0"),
-      interceptor_lib_path_("") {
+Tracker::Tracker(std::shared_ptr<BuildInfo> build_info)
+    : build_info_(build_info) {
   ignore_patterns_.push_back("/tmp/");
   ignore_patterns_.push_back("/proc/");
   ignore_patterns_.push_back("/sys/");
   ignore_patterns_.push_back("/dev/");
 }
 
-void Tracker::setOutputFile(const std::string& output_file) {
-  output_file_ = output_file;
-}
-
 void Tracker::addIgnorePattern(const std::string& pattern) {
   ignore_patterns_.push_back(pattern);
 }
 
-void Tracker::setLogDirectory(const std::string& log_dir) {
-  log_dir_ = log_dir;
-}
-
-const BuildRecord& Tracker::getLastBuildRecord() const {
-  return last_build_record_;
-}
-
-std::string Tracker::executeWithStrace(
-    const std::vector<std::string>& command) {
-  std::string cmd_str = joinCommand(command);
+std::string Tracker::executeWithStrace(const std::string& command) {
   std::string strace_log =
-      log_dir_ + "/strace_" + std::to_string(getpid()) + ".log";
+      build_info_->log_dir_ + "/strace_" + std::to_string(getpid()) + ".log";
   std::string strace_cmd =
       "strace -e trace=openat,execve,execveat,creat -y -f -q -o " + strace_log +
-      " " + cmd_str;
+      " " + command;
 
   Logger::debug("Executing: " + strace_cmd);
 
@@ -259,127 +237,15 @@ bool Tracker::shouldIgnoreArtifact(const std::string& filepath) const {
   return shouldIgnoreFile(filepath);
 }
 
-std::string Tracker::joinCommand(
-    const std::vector<std::string>& command) const {
-  std::ostringstream oss;
-  for (size_t i = 0; i < command.size(); ++i) {
-    if (i > 0) oss << " ";
-
-    const std::string& arg = command[i];
-    // Check if argument contains spaces or other shell special characters
-    if (arg.find(' ') != std::string::npos ||
-        arg.find('\t') != std::string::npos ||
-        arg.find('&') != std::string::npos ||
-        arg.find('|') != std::string::npos ||
-        arg.find(';') != std::string::npos ||
-        arg.find('(') != std::string::npos ||
-        arg.find(')') != std::string::npos) {
-      oss << "\"" << arg << "\"";
-    } else {
-      oss << arg;
-    }
-  }
-  return oss.str();
-}
-
-std::string Tracker::getInterceptorLibraryPath() const {
-  Logger::debug("Extracting embedded execve interceptor library...");
-
-  // Create temporary file for the interceptor library
-  std::string lib_path =
-      log_dir_ + "/reprobuild_interceptor_" + std::to_string(getpid()) + ".so";
-
-  try {
-    // Write embedded library data to temporary file
-    std::ofstream lib_file(lib_path, std::ios::binary);
-    if (!lib_file.is_open()) {
-      Logger::warn("Failed to create temporary interceptor library file: " +
-                   lib_path);
-      return "";
-    }
-
-    lib_file.write(
-        reinterpret_cast<const char*>(EmbeddedInterceptor::INTERCEPTOR_DATA),
-        EmbeddedInterceptor::INTERCEPTOR_SIZE);
-    lib_file.close();
-
-    // Verify the file was written correctly
-    if (!std::filesystem::exists(lib_path)) {
-      Logger::warn("Failed to extract interceptor library to: " + lib_path);
-      return "";
-    }
-
-    // Make the file executable
-    std::filesystem::permissions(lib_path,
-                                 std::filesystem::perms::owner_read |
-                                     std::filesystem::perms::owner_write |
-                                     std::filesystem::perms::owner_exec |
-                                     std::filesystem::perms::group_read |
-                                     std::filesystem::perms::group_exec |
-                                     std::filesystem::perms::others_read |
-                                     std::filesystem::perms::others_exec);
-
-    Logger::debug("Successfully extracted interceptor library to: " + lib_path);
-    Logger::debug("Library size: " +
-                  std::to_string(EmbeddedInterceptor::INTERCEPTOR_SIZE) +
-                  " bytes");
-
-    return lib_path;
-
-  } catch (const std::exception& e) {
-    Logger::warn("Error extracting interceptor library: " +
-                 std::string(e.what()));
-    return "";
-  }
-}
-
-void Tracker::setCompilerOptions(const std::string& build_path) {
-  Logger::info("Setting compiler options for reproducible builds...");
-
-  std::string comp_opts;
-  comp_opts.reserve(256);
-
-  // Create -ffile-prefix-map option to normalize paths
-  std::string prefix_map_option = " -ffile-prefix-map=" + build_path + "=.";
-  comp_opts.append(prefix_map_option);
-  // Set random seed
-  std::string seed_option = " -frandom-seed=" + random_seed_;
-  comp_opts.append(seed_option);
-
-  Utils::appendEnvVar("CFLAGS", comp_opts);
-  Utils::appendEnvVar("CXXFLAGS", comp_opts);
-  Utils::appendEnvVar("CPPFLAGS", comp_opts);
-  Utils::appendEnvVar("REPROBUILD_COMPILER_FLAGS", comp_opts);
-}
-
-void Tracker::prepareBuildEnvironment() {
-  Logger::info("Preparing build environment...");
-
-  // Set SOURCE_DATE_EPOCH using the timestamp from constructor
-  Utils::setSourceDateEpoch(build_timestamp_);
-
-  // Set compiler options for reproducible builds
-  std::string current_path = std::filesystem::current_path().string();
-  setCompilerOptions(current_path);
-
-  // Load the interceptor library
-  interceptor_lib_path_ = getInterceptorLibraryPath();
-  if (!interceptor_lib_path_.empty()) {
-    Utils::appendEnvVar("LD_PRELOAD", interceptor_lib_path_);
-  } else {
-    Logger::warn("Interceptor library path is empty, build tracking may fail.");
-  }
-}
-
-BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
-  Logger::info("Build command: " + joinCommand(build_command));
+void Tracker::trackBuild() {
+  Logger::info("Build command: " + build_info_->build_command_);
 
   std::string strace_output;
   try {
-    strace_output = executeWithStrace(build_command);
+    strace_output = executeWithStrace(build_info_->build_command_);
   } catch (const std::exception& e) {
     Logger::error("Error executing build command: " + std::string(e.what()));
-    return BuildRecord(project_name_);
+    return;
   }
 
   auto library_files = parseLibFiles(strace_output);
@@ -390,18 +256,7 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
                " header files");
   Logger::info("Found " + std::to_string(executables.size()) + " executables");
 
-  BuildRecord record(project_name_);
-
-  // Set metadata information
-  record.setArchitecture(Utils::getArchitecture());
-  record.setDistribution(Utils::getDistribution());
-  record.setBuildPath(std::filesystem::current_path().string());
-  record.setBuildTimestamp(build_timestamp_);
-  record.setHostname(Utils::getHostname());
-  record.setLocale(Utils::getLocale());
-  record.setUmask(Utils::getUmask());
-  record.setRandomSeed(random_seed_);
-  record.setBuildCommand(joinCommand(build_command));
+  BuildRecord& record = build_info_->build_record_;
 
   // Process library files (both shared and static)
   for (const auto& library_file : library_files) {
@@ -459,16 +314,6 @@ BuildRecord Tracker::trackBuild(const std::vector<std::string>& build_command) {
 
   // Detect build artifacts from strace output
   detectBuildArtifacts(strace_output, record);
-
-  try {
-    record.saveToFile(output_file_);
-    Logger::info("Saved build record to: " + output_file_);
-  } catch (const std::exception& e) {
-    Logger::error("Error saving build record: " + std::string(e.what()));
-  }
-
-  last_build_record_ = record;
-  return record;
 }
 
 void Tracker::detectBuildArtifacts(const std::string& strace_output,

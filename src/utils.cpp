@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <memory>
 #include <sstream>
+#include <vector>
 
 #include "logger.h"
 
@@ -238,6 +239,28 @@ void appendEnvVar(const std::string& name, const std::string& value) {
   } else {
     Logger::warn("Failed to set " + name + " environment variable");
   }
+}
+
+std::string joinCommand(const std::vector<std::string>& command) {
+  std::ostringstream oss;
+  for (size_t i = 0; i < command.size(); ++i) {
+    if (i > 0) oss << " ";
+
+    const std::string& arg = command[i];
+    // Check if argument contains spaces or other shell special characters
+    if (arg.find(' ') != std::string::npos ||
+        arg.find('\t') != std::string::npos ||
+        arg.find('&') != std::string::npos ||
+        arg.find('|') != std::string::npos ||
+        arg.find(';') != std::string::npos ||
+        arg.find('(') != std::string::npos ||
+        arg.find(')') != std::string::npos) {
+      oss << "\"" << arg << "\"";
+    } else {
+      oss << arg;
+    }
+  }
+  return oss.str();
 }
 
 }  // namespace Utils

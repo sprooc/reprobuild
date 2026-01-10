@@ -1,11 +1,15 @@
 #include <getopt.h>
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "build_info.h"
 #include "logger.h"
+#include "preprocessor.h"
 #include "tracker.h"
+#include "utils.h"
 
 void printUsage(const char* program_name) {
   Logger::warn(std::string("Usage: ") + program_name +
@@ -66,22 +70,27 @@ int main(int argc, char* argv[]) {
     build_command.push_back(argv[i]);
   }
 
+  std::shared_ptr<BuildInfo> build_info =
+      std::make_shared<BuildInfo>(Utils::joinCommand(build_command), output_file, log_dir);
+
+  Logger::setLevel(LogLevel::INFO);
+  Logger::setLevel();
+
+  Preprocessor preprocessor(build_info);
+  preprocessor.prepareBuildEnvironment();
+
+  build_info->fillBuildRecordMetadata();
+
+  Tracker tracker(build_info);
   try {
-    Logger::setLevel(LogLevel::INFO);
-    Logger::setLevel();
-    Tracker tracker("project");
-
-    // Configure tracker with user-specified options
-    tracker.setOutputFile(output_file);
-    tracker.setLogDirectory(log_dir);
-
-    tracker.prepareBuildEnvironment();
-    BuildRecord record = tracker.trackBuild(build_command);
+    tracker.trackBuild();
 
   } catch (const std::exception& e) {
     Logger::error("Error: " + std::string(e.what()));
     return 1;
   }
+
+  build_info->build_record_.saveToFile(output_file);
 
   Logger::info("Build completed.");
   return 0;
