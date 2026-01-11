@@ -133,6 +133,16 @@ void BuildRecord::saveToFile(const std::string& filepath) const {
   }
   root["artifacts"] = artifacts_node;
 
+  // Add git commit ids section
+  YAML::Node git_commits_node;
+  for (const auto& [repo, commit] : git_commit_ids_) {
+    YAML::Node commit_node;
+    commit_node["repo"] = repo;
+    commit_node["commit_id"] = commit;
+    git_commits_node.push_back(commit_node);
+  }
+  if (!git_commit_ids_.empty()) root["git_commit_ids"] = git_commits_node;
+
   std::ofstream file(filepath);
   if (!file.is_open()) {
     throw std::runtime_error("Cannot open file for writing: " + filepath);

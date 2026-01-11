@@ -19,6 +19,7 @@ class BuildInfo {
   std::string random_seed_;
 
   std::string interceptor_lib_path_;
+  std::string git_commit_log_path_;
 
   BuildRecord build_record_;
 

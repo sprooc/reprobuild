@@ -88,6 +88,18 @@ artifacts:
 - **hash**: 构建产物的SHA256校验和，用于验证产物一致性。实验的目标就是在容器复现构建环境中生成的产物与原始产物的hash值一致。
 - **type**: 构建产物的类型（executable/library）
 
+### Git Commit IDs Section
+列出构建过程中使用的Git仓库及其对应的提交ID：
+```yaml
+git_commit_ids:
+  - repo: https://github.com/sprooc/reprobuild.git
+    commit_id: bc23d9de3e3bb5485f7fb50ea6a81a49f788129e
+  - repo: xxx
+    commit_id: xxx
+```
+
+在重新构建时，拦截`git clone`命令，并使用对应的提交ID检出代码，确保源代码版本一致。
+
 ## Notes
 
 ### 2026/1/4
@@ -96,3 +108,7 @@ artifacts:
 3. 有些项目不会将`CFLAGS`等环境变量传递给编译器，导致-ffile-prefix-map等选项不能生效。现在使用了`LD_PRELOAD`的方式拦截`execve`调用，对所有编译器命令添加这些选项，确保路径映射等选项生效。具体做法：
     - 设置环境变量`LD_PRELOAD`，指向拦截库`libreprobuild_interceptor.so`。
     - 将之前设置到`CFLAGS`的值同样设置到环境变量`REPROBUILD_COMPILER_FLAGS`，包含需要传递给编译器的选项，例如`-ffile-prefix-map=/home/user/project=.`和`-frandom-seed=0`。拦截函数会读取这个环境变量，并将其内容添加到编译器命令行参数中。
+
+### 2026/1/10
+添加了git_commit_ids字段，记录构建过程中使用的Git仓库及其对应的提交ID。在重新构建时，拦截`git clone`命令，并使用对应的commit_id将代码滚回对应版本，确保源代码一致。
+拦截和回滚功能已在`libreprobuild_interceptor.so`中实现。需要在重建时创建一个文本文件，每一行为`<repo_url> <commit_id>`，空格隔开([参考](./tests/git-test/git_log))。并设置环境变量`REPROBUILD_LOG_GIT_CLONESG`指向该文件路径。

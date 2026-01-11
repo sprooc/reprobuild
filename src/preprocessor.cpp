@@ -1,11 +1,12 @@
 #include "preprocessor.h"
-#include "canonicalizer.h"
+
 #include <unistd.h>
 
 #include <filesystem>
-#include <regex>
 #include <fstream>
+#include <regex>
 
+#include "canonicalizer.h"
 #include "interceptor_embedded.h"
 #include "logger.h"
 #include "utils.h"
@@ -86,6 +87,11 @@ void Preprocessor::prepareBuildEnvironment() {
 
   // Set SOURCE_DATE_EPOCH using the timestamp from constructor
   Utils::setSourceDateEpoch(build_info_->build_timestamp_);
+  // Set git commit log path environment variable
+  Utils::appendEnvVar("REPROBUILD_LOG_GIT_CLONES",
+                      build_info_->git_commit_log_path_);
+  setenv("REPROBUILD_STAGE", "build", 1);
+
   // Set compiler options for reproducible builds
   setCompilerOptions();
 
@@ -100,7 +106,6 @@ void Preprocessor::prepareBuildEnvironment() {
 }
 
 void Preprocessor::fixMakefile() {
-
   std::string build_cmd = build_info_->build_command_;
   if (build_cmd.find("make") == std::string::npos) {
     Logger::debug(

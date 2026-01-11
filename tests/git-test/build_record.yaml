@@ -1,0 +1,156 @@
+# Build Record for 
+metadata:
+  architecture: x86_64
+  distribution: Ubuntu 25.04
+  build_cmd: make
+  build_path: /home/sprooc/reprobuild/tests/git-test
+  build_timestamp: 2026-01-11T12:04:47+00:00
+  hostname: sprooc
+  locale: LANG=en_US.UTF-8;LANGUAGE=;LC_CTYPE="en_US.UTF-8";LC_NUMERIC="en_US.UTF-8";LC_TIME="en_US.UTF-8";LC_COLLATE="en_US.UTF-8";LC_MONETARY="en_US.UTF-8";LC_MESSAGES="en_US.UTF-8";LC_PAPER="en_US.UTF-8";LC_NAME="en_US.UTF-8";LC_ADDRESS="en_US.UTF-8";LC_TELEPHONE="en_US.UTF-8";LC_MEASUREMENT="en_US.UTF-8";LC_IDENTIFICATION="en_US.UTF-8";LC_ALL=
+  umask: 0002
+  random_seed: 0
+dependencies:
+  - name: coreutils
+    path: /usr/bin/true
+    version: 9.5-1ubuntu1
+    hash: 71c3aff25f7597d7ad248ab6d9d43fbe95b21f2e2d102377c81da6e4c1d61e0a
+  - name: dash
+    path: /usr/bin/dash
+    version: 0.5.12-12ubuntu1
+    hash: ba8b1117205141c0fb9381585bd2b74e5cf5459406687f39f09bf5905812c96f
+  - name: git
+    path: /usr/lib/git-core/git-remote-http
+    version: 1:2.48.1-0ubuntu1.1
+    hash: 44cbea081be06b7ab64d274a00b76a15f80e49300e9a7898d7164ee4da30b34b
+  - name: libbrotli1
+    path: /usr/lib/x86_64-linux-gnu/libbrotlidec.so.1.1.0
+    version: 1.1.0-2build4
+    hash: f96b36f0c4ecc9299705ff10409c8dd432d4d670e1d27859c2560c3a5e851d5b
+  - name: libc6
+    path: /usr/lib/x86_64-linux-gnu/libresolv.so.2
+    version: 2.41-6ubuntu1.2
+    hash: 6d115bccdc70e7afbe55fa2830ec4048e0a282598c7c03796069787df8bc6066
+  - name: libcom-err2
+    path: /usr/lib/x86_64-linux-gnu/libcom_err.so.2.1
+    version: 1.47.2-1ubuntu1
+    hash: 28ae7874ba67880aa3011dd9e370949fbdf9263b24d2232114c2205bcaf22536
+  - name: libcurl3t64-gnutls
+    path: /usr/lib/x86_64-linux-gnu/libcurl-gnutls.so.4.8.0
+    version: 8.12.1-3ubuntu1
+    hash: 507e55f255dcc513ed4eac708f7144130b527ce86f92e627f8ec54213f4971d1
+  - name: libffi8
+    path: /usr/lib/x86_64-linux-gnu/libffi.so.8.1.4
+    version: 3.4.7-1
+    hash: e489f7e3ee064c1707520e6aaf887a6367363aed70308b9845802070472b723b
+  - name: libgcc-s1
+    path: /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+    version: 15-20250404-0ubuntu1
+    hash: 3838d5d14692b5fd8a1e6908886b0cb8e9ecc272bf10c9e17031c7017c9cfd33
+  - name: libgmp10
+    path: /usr/lib/x86_64-linux-gnu/libgmp.so.10.5.0
+    version: 2:6.3.0+dfsg-3ubuntu1
+    hash: 53e42908ad815f76af6051f878e186b4b23f8cd7872c51023be8be93b8c1fdb1
+  - name: libgnutls30t64
+    path: /usr/lib/x86_64-linux-gnu/libgnutls.so.30.40.3
+    version: 3.8.9-2ubuntu3.1
+    hash: 54a343f95cf78dbd0287ec7507af701b80ac921f2bc9b1212c76267cc17b46c7
+  - name: libgssapi-krb5-2
+    path: /usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2.2
+    version: 1.21.3-4ubuntu2
+    hash: e2b4c6b31556c3f6a48af9258b3b56d38b54aa41a715451769a6397f5ecd0fc5
+  - name: libhogweed6t64
+    path: /usr/lib/x86_64-linux-gnu/libhogweed.so.6.10
+    version: 3.10.1-1
+    hash: 569544d7c4da18cd5c01e5444deec513469e026fe7fb371412f2704b212366f6
+  - name: libidn2-0
+    path: /usr/lib/x86_64-linux-gnu/libidn2.so.0.4.0
+    version: 2.3.8-2
+    hash: 2ab4f3d37474191543bc8089c120bc78e22d4e4ec55eda4f958d389fd2572145
+  - name: libk5crypto3
+    path: /usr/lib/x86_64-linux-gnu/libk5crypto.so.3.1
+    version: 1.21.3-4ubuntu2
+    hash: f2eff5c8e81527005349965d7095666276cbacec802a9658c0ed2300aa2b5ad6
+  - name: libkeyutils1
+    path: /usr/lib/x86_64-linux-gnu/libkeyutils.so.1.10
+    version: 1.6.3-4ubuntu2
+    hash: e64148e3f44f8dfc247f2f509b63c355c1b2e5600ac6e83f7cc522932238d325
+  - name: libkrb5-3
+    path: /usr/lib/x86_64-linux-gnu/libkrb5.so.3.3
+    version: 1.21.3-4ubuntu2
+    hash: 6a2837f8f2b1ed103cce68f1a89181c2a007ed103ef4faef5e5d7e42610ee573
+  - name: libkrb5support0
+    path: /usr/lib/x86_64-linux-gnu/libkrb5support.so.0.1
+    version: 1.21.3-4ubuntu2
+    hash: 9ed809961bcc2c1992b397949b374c4673a23102040bfc44526b41f8b056d42c
+  - name: libldap2
+    path: /usr/lib/x86_64-linux-gnu/libldap.so.2.0.200
+    version: 2.6.9+dfsg-2ubuntu1
+    hash: 121e32a635012a9c3c8b26be914aa62b915351592c834b6584c3963d93c654b3
+  - name: libnettle8t64
+    path: /usr/lib/x86_64-linux-gnu/libnettle.so.8.10
+    version: 3.10.1-1
+    hash: 4e296579f8c9c55ff05d0fd5917c2103f465edbb35cd643012815795d82fdbc6
+  - name: libnghttp2-14
+    path: /usr/lib/x86_64-linux-gnu/libnghttp2.so.14.28.3
+    version: 1.64.0-1ubuntu1
+    hash: 9823003dff641ce39cec4e2dc359ef0c69f8a3afec2823f621abd5c82b9e424c
+  - name: libp11-kit0
+    path: /usr/lib/x86_64-linux-gnu/libp11-kit.so.0.4.1
+    version: 0.25.5-2ubuntu3
+    hash: 30d94eaa74136d751b151bedfb57b116a8e566a3af406e9cd224968f63de029a
+  - name: libpcre2-8-0
+    path: /usr/lib/x86_64-linux-gnu/libpcre2-8.so.0.14.0
+    version: 10.45-1ubuntu0.1
+    hash: be7d64d79e777990ee199dc3ee14657044d43e63f45cb2c49aa04a3352b4242b
+  - name: libpsl5t64
+    path: /usr/lib/x86_64-linux-gnu/libpsl.so.5.3.4
+    version: 0.21.2-1.1build1
+    hash: ae6c5a9aecc249fc66e03c16ec6c4385d09d7e12e0ea7694bb831ab4fee8133c
+  - name: librtmp1
+    path: /usr/lib/x86_64-linux-gnu/librtmp.so.1
+    version: 2.4+20151223.gitfa8646d.1-2build7
+    hash: 15a2a75e8c437b9c99971b5ee10278ab110beef1a56d1d9e5d6759ea140e98ac
+  - name: libsasl2-2
+    path: /usr/lib/x86_64-linux-gnu/libsasl2.so.2.0.25
+    version: 2.1.28+dfsg1-9
+    hash: 0a1932331db4f97ccc355b3dab5e8ba413519e7f26f9bea1dd4916ec3e660de5
+  - name: libssh2-1t64
+    path: /usr/lib/x86_64-linux-gnu/libssh2.so.1.0.1
+    version: 1.11.1-1
+    hash: 5d7ca48c01e17f877024111d0fbf7c7a648fe1b1d7838b5e45a96c8ff3341710
+  - name: libssl3t64
+    path: /usr/lib/x86_64-linux-gnu/libssl.so.3
+    version: 3.4.1-1ubuntu4
+    hash: 1ddc45fbe9ca5d300922b8a7cd6c05208d435fcf517ccc1e9e9c0d72e8a57ce3
+  - name: libstdc++6
+    path: /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.34
+    version: 15-20250404-0ubuntu1
+    hash: 9fb7d85e8aa687d1d8b27d5c189f3d938579a29e75af9d4651db4d33218fb401
+  - name: libtasn1-6
+    path: /usr/lib/x86_64-linux-gnu/libtasn1.so.6.6.4
+    version: 4.20.0-2
+    hash: b182a4c74bae414dc9647d7c1fac20d7161198b60707e2ac18066cc985f656f9
+  - name: libunistring5
+    path: /usr/lib/x86_64-linux-gnu/libunistring.so.5.2.0
+    version: 1.3-1
+    hash: 3e2d052eea83c683f02bf5de1b8dfa536901ece5a3ebeb2051757661224a47a4
+  - name: libzstd1
+    path: /usr/lib/x86_64-linux-gnu/libzstd.so.1.5.6
+    version: 1.5.6+dfsg-2
+    hash: 4cdaa615582c374a774506480b7bcaa408cc36368e04d2eae3ea30094c060c55
+  - name: locales
+    path: /etc/locale.alias
+    version: 2.41-6ubuntu1.2
+    hash: ad5655f508141f8117ddc10a080e183e2ed4ee1fd0a80c8ec7bedf98159b9d8b
+  - name: make
+    path: /usr/bin/make
+    version: 4.4.1-1
+    hash: caee5a3413df4f67064bd4b16428e09bbcbdeaa47b94bec9482b6abd02fe6a61
+  - name: zlib1g
+    path: /usr/lib/x86_64-linux-gnu/libz.so.1.3.1
+    version: 1:1.3.dfsg+really1.3.1-1ubuntu1
+    hash: 103d30dafcda2d0e0375d3a17c82508ddf47d9617a1c09edde79092c3fe17929
+artifacts: ~
+git_commit_ids:
+  - repo: https://github.com/sprooc/reprobuild.git
+    commit_id: bc23d9de3e3bb5485f7fb50ea6a81a49f788129e

@@ -7,6 +7,7 @@
 
 #include "build_info.h"
 #include "logger.h"
+#include "postprocessor.h"
 #include "preprocessor.h"
 #include "tracker.h"
 #include "utils.h"
@@ -70,8 +71,8 @@ int main(int argc, char* argv[]) {
     build_command.push_back(argv[i]);
   }
 
-  std::shared_ptr<BuildInfo> build_info =
-      std::make_shared<BuildInfo>(Utils::joinCommand(build_command), output_file, log_dir);
+  std::shared_ptr<BuildInfo> build_info = std::make_shared<BuildInfo>(
+      Utils::joinCommand(build_command), output_file, log_dir);
 
   Logger::setLevel(LogLevel::INFO);
   Logger::setLevel();
@@ -90,6 +91,9 @@ int main(int argc, char* argv[]) {
     Logger::error("Error: " + std::string(e.what()));
     return 1;
   }
+
+  Postprocessor postprocessor(build_info);
+  postprocessor.postprocess();
 
   build_info->build_record_.saveToFile(output_file);
 

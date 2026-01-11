@@ -68,7 +68,7 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 target_link_libraries(${PROJECT_NAME} reprobuild_lib)
 
 # Collect test files
-file(GLOB_RECURSE TEST_SOURCES "tests/*.cpp")
+file(GLOB_RECURSE TEST_SOURCES "tests/test*.cpp")
 
 if(TEST_SOURCES)
     add_executable(reprobuild_tests ${TEST_SOURCES})

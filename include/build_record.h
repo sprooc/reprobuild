@@ -57,6 +57,9 @@ class BuildRecord {
   void setUmask(const std::string& umask) { umask_ = umask; }
   void setRandomSeed(const std::string& seed) { random_seed_ = seed; }
   void setBuildCommand(const std::string& cmd) { build_cmd_ = cmd; }
+  void addGitCommitId(const std::string& repo, const std::string& commit) {
+    git_commit_ids_.emplace_back(repo, commit);
+  }
 
   const std::string& getArchitecture() const { return architecture_; }
   const std::string& getDistribution() const { return distribution_; }
@@ -67,6 +70,8 @@ class BuildRecord {
   const std::string& getUmask() const { return umask_; }
   const std::string& getRandomSeed() const { return random_seed_; }
   const std::string& getBuildCommand() const { return build_cmd_; }
+  
+
 
  private:
   std::string project_name_;
@@ -83,6 +88,7 @@ class BuildRecord {
   std::string umask_;
   std::string random_seed_;
   std::string build_cmd_;
+  std::vector<std::pair<std::string, std::string>> git_commit_ids_;
 };
 
 #endif  // BUILD_RECORD_H

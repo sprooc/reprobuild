@@ -9,10 +9,25 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <fstream>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
+
+enum Stage { BUILD, REBUILD };
+
+Stage curr_stage() {
+  const char* stage_env = getenv("REPROBUILD_STAGE");
+  if (stage_env) {
+    if (strcmp(stage_env, "build") == 0) {
+      return BUILD;
+    } else {
+      return REBUILD;
+    }
+  }
+  return REBUILD;  // Default to REBUILD
+}
 
 // External environ variable
 extern char** environ;
@@ -31,12 +46,12 @@ extern char** environ;
   }
 
 #define INTERCEPT_LOG(name, pathname) \
-  printf("Intercepted %s: %s\n", #name, pathname);
+  // printf("Intercepted %s: %s\n", #name, pathname);
 
 #define INTERCEPT_WITH_ARGV(name, pathname, argv, call_real)         \
   load_real_exec_functions();                                        \
   INTERCEPT_LOG(name, pathname)                                      \
-  if (handle_git_clone(argv)) {                                      \
+  if (handle_git_clone(pathname, argv)) {                            \
     return 0;                                                        \
   }                                                                  \
   if (should_add_compiler_flags(pathname)) {                         \
@@ -80,34 +95,62 @@ static void load_real_exec_functions() {
                  char* const[], char* const[])
 }
 
-// Global map to store git repository URLs and their commit IDs
-static std::map<std::string, std::string> git_repo_commits;
-
-// Global variable to store the last git clone PID for posix_spawn
-static pid_t git_clone_pid = 0;
+// Function to get git repo commits map (safe static initialization)
+static std::map<std::string, std::string>& get_git_repo_commits() {
+  static std::map<std::string, std::string> git_repo_commits;
+  return git_repo_commits;
+}
 
 // Function to execute command and capture output
-static std::string execute_and_capture(const std::string& command) {
-  std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(command.c_str(), "r"),
-                                             pclose);
-  if (!pipe) return "";
-
-  char buffer[128];
-  std::string result;
-  while (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr) {
-    result += buffer;
+static std::string execute_and_capture(const char* path, char* const argv[],
+                                       bool quiet = true) {
+  int pipefd[2];
+  if (pipe(pipefd) != 0) {
+    return "";
   }
 
-  // Remove trailing newline
+  posix_spawn_file_actions_t actions;
+  posix_spawn_file_actions_init(&actions);
+
+  posix_spawn_file_actions_adddup2(&actions, pipefd[1], STDOUT_FILENO);
+  posix_spawn_file_actions_adddup2(&actions, pipefd[1], STDERR_FILENO);
+  posix_spawn_file_actions_addclose(&actions, pipefd[0]);
+
+  pid_t pid;
+  int rc = real_posix_spawn(&pid, path, &actions, nullptr, argv, environ);
+
+  posix_spawn_file_actions_destroy(&actions);
+  close(pipefd[1]);
+
+  if (rc != 0) {
+    close(pipefd[0]);
+    return "";
+  }
+
+  std::string result;
+  char buffer[128];
+
+  ssize_t n;
+  while ((n = read(pipefd[0], buffer, sizeof(buffer))) > 0) {
+    result.append(buffer, n);
+    if (!quiet) {
+      printf("%.*s", (int)n, buffer);
+    }
+  }
+
   if (!result.empty() && result.back() == '\n') {
     result.pop_back();
   }
 
+  close(pipefd[0]);
+
+  int status;
+  waitpid(pid, &status, 0);
   return result;
 }
 
 // Check if this is a git clone command and handle it
-static bool handle_git_clone(char* const argv[]) {
+static bool handle_git_clone(const char* path, char* const argv[]) {
   if (!argv || !argv[0]) return false;
 
   // Check if this is git command
@@ -138,76 +181,70 @@ static bool handle_git_clone(char* const argv[]) {
 
   if (repo_url.empty()) return false;
 
-  printf("Intercepted git clone: %s\n", repo_url.c_str());
+  // printf("Intercepted git clone: %s\n", repo_url.c_str());
 
-  // Execute the original git clone command using real posix_spawn to avoid
-  // recursion First, load the real posix_spawn function
-  LOAD_REAL_FUNC(posix_spawn, int, pid_t*, const char*,
-                 const posix_spawn_file_actions_t*, const posix_spawnattr_t*,
-                 char* const[], char* const[])
-
-  // Build argv array for git clone
-  std::vector<char*> git_argv;
-  git_argv.push_back(const_cast<char*>("git"));
-  for (int i = 1; argv[i]; i++) {
-    git_argv.push_back(argv[i]);
-  }
-  git_argv.push_back(nullptr);
-
-  pid_t git_pid;
-  int clone_result = real_posix_spawn(&git_pid, "/usr/bin/git", nullptr,
-                                      nullptr, git_argv.data(), environ);
-
-  // Store the PID globally for posix_spawn to return
-  git_clone_pid = git_pid;
-
-  if (clone_result != 0) {
-    printf("Git clone posix_spawn failed with error: %d\n", clone_result);
-    return true;
-  }
-
-  // Wait for git clone to complete
-  int status;
-  waitpid(git_pid, &status, 0);
-
-  if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-    printf("Git clone failed with exit code: %d\n", WEXITSTATUS(status));
-    return true;
-  }
-
-  // Get commit ID from the cloned repository
-  std::string work_dir;
-  if (!target_dir.empty()) {
-    work_dir = target_dir;
-  } else {
-    // Extract directory name from URL
-    size_t last_slash = repo_url.find_last_of('/');
-    if (last_slash != std::string::npos) {
-      work_dir = repo_url.substr(last_slash + 1);
-      // Remove .git suffix if present
-      if (work_dir.size() > 4 &&
-          work_dir.substr(work_dir.size() - 4) == ".git") {
-        work_dir = work_dir.substr(0, work_dir.size() - 4);
-      }
+  char* git_cmd[64];
+  int loc = 0;
+  bool quiet_flag = false;
+  for (int i = 0; argv[i]; i++) {
+    if (strcmp(argv[i], "-q") == 0 || strcmp(argv[i], "--quiet") == 0) {
+      quiet_flag = true;
+      continue;
     }
+    git_cmd[loc++] = argv[i];
+  }
+  git_cmd[loc] = nullptr;
+
+  std::string output = execute_and_capture(path, git_cmd, quiet_flag);
+
+  std::string work_dir;
+
+  if (output.find("Cloning into '", 0) == 0) {
+    size_t start = strlen("Cloning into '");
+    size_t end = output.find("'...", start);
+    if (end != std::string::npos) {
+      work_dir = output.substr(start, end - start);
+    }
+  } else {
+    return true;
   }
 
-  if (!work_dir.empty()) {
+  if (curr_stage() == BUILD) {
     std::string rev_parse_cmd =
-        "cd \"" + work_dir + "\" && git rev-parse HEAD 2>/dev/null";
-    std::string commit_id = execute_and_capture(rev_parse_cmd);
+        "cd " + work_dir + " && git rev-parse HEAD 2>/dev/null";
+    char* const rev_parse_argv[4] = {"sh", "-c", (char*)rev_parse_cmd.c_str(),
+                                     nullptr};
+
+    std::string commit_id = execute_and_capture("/usr/bin/sh", rev_parse_argv);
 
     if (!commit_id.empty()) {
-      git_repo_commits[repo_url] = commit_id;
-      printf("Recorded commit for %s: %s\n", repo_url.c_str(),
-             commit_id.c_str());
+      get_git_repo_commits()[repo_url] = commit_id;
+      // printf("Recorded commit for %s: %s\n", repo_url.c_str(),
+      // commit_id.c_str());
 
       // Optionally write to a file for persistence
-      FILE* commit_file = fopen("/tmp/git_clone_commits.log", "a");
+      const char* log_path = getenv("REPROBUILD_LOG_GIT_CLONES");
+      if (!log_path) {
+        log_path = "/tmp/git_clone_commits.log";
+      }
+      FILE* commit_file = fopen(log_path, "a");
       if (commit_file) {
         fprintf(commit_file, "%s %s\n", repo_url.c_str(), commit_id.c_str());
         fclose(commit_file);
       }
+    }
+  } else {
+    // In REBUILD stage, checkout the recorded commit
+    auto& commits_map = get_git_repo_commits();
+    auto it = commits_map.find(repo_url);
+    if (it != commits_map.end()) {
+      std::string commit_id = it->second;
+      std::string checkout_cmd =
+          "cd " + work_dir + " && git reset -q --hard " + commit_id + " 2>/dev/null";
+      char* const checkout_argv[4] = {"sh", "-c", (char*)checkout_cmd.c_str(),
+                                      nullptr};
+      // printf("Checking out %s in %s\n", commit_id.c_str(), work_dir.c_str());
+      execute_and_capture("/usr/bin/sh", checkout_argv, quiet_flag);
     }
   }
 
@@ -328,10 +365,10 @@ extern "C" int posix_spawn(pid_t* pid, const char* path,
                  char* const[], char* const[])
 
   // Simple output for posix_spawn
-  printf("Intercepted posix_spawn: %s\n", path);
+  // printf("Intercepted posix_spawn: %s\n", path);
 
   // Check for git clone handling
-  if (handle_git_clone(argv)) {
+  if (handle_git_clone(path, argv)) {
     return real_posix_spawn(pid, "/usr/bin/true", nullptr, nullptr, argv, envp);
   }
 
@@ -349,4 +386,32 @@ extern "C" int posix_spawn(pid_t* pid, const char* path,
 
   // Call the real posix_spawn function
   return real_posix_spawn(pid, path, file_actions, attrp, argv, envp);
+}
+
+__attribute__((constructor)) static void init(void) {
+
+  // In rebuild stage, constract git repo commits map from log file
+  if (curr_stage() == REBUILD) {
+    const char* log_path = getenv("REPROBUILD_LOG_GIT_CLONES");
+    if (!log_path) {
+      log_path = "/tmp/git_clone_commits.log";
+    }
+
+    std::ifstream log_file(log_path);
+    if (log_file.is_open()) {
+      std::string line;
+      auto& commits_map = get_git_repo_commits();
+      while (std::getline(log_file, line)) {
+        size_t sep_pos = line.find(' ');
+        if (sep_pos != std::string::npos) {
+          std::string repo_url = line.substr(0, sep_pos);
+          std::string commit_id = line.substr(sep_pos + 1);
+          commits_map[repo_url] = commit_id;
+          // printf("Loaded commit for %s: %s\n", repo_url.c_str(),
+          //        commit_id.c_str());
+        }
+      }
+      log_file.close();
+    }
+  }
 }
