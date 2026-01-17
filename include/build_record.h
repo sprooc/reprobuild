@@ -70,7 +70,10 @@ class BuildRecord {
   const std::string& getUmask() const { return umask_; }
   const std::string& getRandomSeed() const { return random_seed_; }
   const std::string& getBuildCommand() const { return build_cmd_; }
-  
+  const std::vector<std::pair<std::string, std::string>>& getGitCommitIds()
+      const {
+    return git_commit_ids_;
+  }
 
 
  private:

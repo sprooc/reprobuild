@@ -161,6 +161,18 @@ bool Tracker::shouldIgnoreFile(const std::string& filepath) const {
 }
 
 bool Tracker::shouldIgnoreLib(const std::string& filepath) const {
+  static const std::set<std::string> ignore_libs = {
+      "/etc/ld.so.cache", "/lib64/ld-linux-x86-64.so.2"};
+
+  if (ignore_libs.find(filepath) != ignore_libs.end()) {
+    return true;
+  }
+  
+  if (filepath.find(build_info_->build_path_) != std::string::npos) {
+    // Ignore libraries in the build directory
+    return true;
+  }
+
   return shouldIgnoreFile(filepath);
 }
 
@@ -169,12 +181,17 @@ bool Tracker::shouldIgnoreHeader(const std::string& filepath) const {
     // Ignore relative paths
     return true;
   }
+
+  if (filepath.find(build_info_->build_path_) != std::string::npos) {
+    // Ignore headers in the build directory
+    return true;
+  }
   return shouldIgnoreFile(filepath);
 }
 
 bool Tracker::shouldIgnoreExecutable(const std::string& filepath) const {
   // Ignore common shell and system utilities that are not build dependencies
-  static const std::vector<std::string> ignore_execs = {
+  static const std::set<std::string> ignore_execs = {
       "/bin/sh",      "/bin/bash",      "/bin/dash",        "/bin/zsh",
       "/usr/bin/env", "/usr/bin/which", "/usr/bin/dirname", "/usr/bin/basename",
       "/bin/echo",    "/bin/cat",       "/bin/grep",        "/bin/sed",
@@ -187,10 +204,8 @@ bool Tracker::shouldIgnoreExecutable(const std::string& filepath) const {
     return true;
   }
 
-  for (const auto& ignored : ignore_execs) {
-    if (filepath == ignored) {
-      return true;
-    }
+  if (ignore_execs.find(filepath) != ignore_execs.end()) {
+    return true;
   }
 
   // Use the same ignore patterns as for shared libraries

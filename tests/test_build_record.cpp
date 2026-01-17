@@ -7,11 +7,11 @@
 class BuildRecordTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    openssl_pkg = DependencyPackage("openssl", "/usr/lib/libssl.so", "1.1.1w",
+    openssl_pkg = DependencyPackage("openssl", DependencyOrigin::Apt, "/usr/lib/libssl.so", "1.1.1w",
                                     "sha256:abc123");
     zlib_pkg =
-        DependencyPackage("zlib", "/usr/lib/libz.so", "1.3", "sha256:def456");
-    curl_pkg = DependencyPackage("curl", "/usr/lib/libcurl.so", "7.81.0",
+        DependencyPackage("zlib", DependencyOrigin::Apt, "/usr/lib/libz.so", "1.3", "sha256:def456");
+    curl_pkg = DependencyPackage("curl", DependencyOrigin::Apt, "/usr/lib/libcurl.so", "7.81.0",
                                  "sha256:ghi789");
 
     record = BuildRecord("");

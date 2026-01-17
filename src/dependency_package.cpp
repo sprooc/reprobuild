@@ -13,10 +13,14 @@ DependencyPackage::DependencyPackage()
     : package_name_(""), original_path_(""), version_(""), hash_value_("") {}
 
 DependencyPackage::DependencyPackage(const std::string& package_name,
+                                     //  const DependencyKind kind,
+                                     const DependencyOrigin origin,
                                      const std::string& original_path,
                                      const std::string& version,
                                      const std::string& hash_value)
     : package_name_(package_name),
+      // kind_(kind),
+      origin_(origin),
       original_path_(original_path),
       version_(version),
       hash_value_(hash_value) {}
@@ -36,8 +40,9 @@ std::string DependencyPackage::generateUniqueId() const {
 bool DependencyPackage::matches(const DependencyPackage& other) const {
   // Two packages match if they have the same name and version
   return package_name_ == other.package_name_ &&
-         original_path_ == other.original_path_ && version_ == other.version_ &&
-         hash_value_ == other.hash_value_;
+         //  kind_ == other.kind_ &&
+         origin_ == other.origin_ && original_path_ == other.original_path_ &&
+         version_ == other.version_ && hash_value_ == other.hash_value_;
 }
 
 bool DependencyPackage::verifyIntegrity(
@@ -59,8 +64,9 @@ std::string DependencyPackage::toString() const {
 
 bool DependencyPackage::operator==(const DependencyPackage& other) const {
   return package_name_ == other.package_name_ &&
-         original_path_ == other.original_path_ && version_ == other.version_ &&
-         hash_value_ == other.hash_value_;
+         //  kind_ == other.kind_ &&
+         origin_ == other.origin_ && original_path_ == other.original_path_ &&
+         version_ == other.version_ && hash_value_ == other.hash_value_;
 }
 
 bool DependencyPackage::operator!=(const DependencyPackage& other) const {
@@ -131,8 +137,14 @@ DependencyPackage DependencyPackage::fromRawFile(
     }
 
     if (package_name.empty()) {
-      throw std::runtime_error("Could not find package owner for file: " +
-                               raw_file_path);
+      // Custom file not owned by any package
+      std::string package_name =
+          std::filesystem::path(raw_file_path).filename().string();
+      std::string hash_value = Utils::calculateFileHash(real_path);
+      DependencyPackage package =
+          DependencyPackage(package_name, DependencyOrigin::Custom, real_path,
+                            "custom", hash_value);
+      return package;
     }
 
     // Step 3: Get precise version using dpkg-query
@@ -154,7 +166,8 @@ DependencyPackage DependencyPackage::fromRawFile(
     }
 
     // Create and return DependencyPackage object
-    return DependencyPackage(package_name, real_path, version, hash_value);
+    return DependencyPackage(package_name, DependencyOrigin::Apt, real_path,
+                             version, hash_value);
 
   } catch (const std::exception& e) {
     // If any step fails, return an invalid package with error information

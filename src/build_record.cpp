@@ -118,6 +118,14 @@ void BuildRecord::saveToFile(const std::string& filepath) const {
     dep_node["path"] = dep.getOriginalPath();
     dep_node["version"] = dep.getVersion();
     dep_node["hash"] = dep.getHashValue();
+    switch (dep.getOrigin()) {
+      case DependencyOrigin::Apt:
+        dep_node["origin"] = "apt";
+        break;
+      case DependencyOrigin::Custom:
+        dep_node["origin"] = "custom";
+        break;
+    }
     deps_node.push_back(dep_node);
   }
   root["dependencies"] = deps_node;
@@ -171,13 +179,17 @@ BuildRecord BuildRecord::loadFromFile(const std::string& filepath) {
   if (root["dependencies"] && root["dependencies"].IsSequence()) {
     for (const auto& dep_node : root["dependencies"]) {
       if (dep_node["name"] && dep_node["path"] && dep_node["version"] &&
-          dep_node["hash"]) {
+          dep_node["hash"] && dep_node["origin"]) {
         std::string name = dep_node["name"].as<std::string>();
         std::string path = dep_node["path"].as<std::string>();
         std::string version = dep_node["version"].as<std::string>();
         std::string hash = dep_node["hash"].as<std::string>();
-
-        DependencyPackage dep(name, path, version, hash);
+        std::string origin_str = dep_node["origin"].as<std::string>();
+        DependencyOrigin origin = DependencyOrigin::Custom;
+        if (origin_str == "apt") {
+          origin = DependencyOrigin::Apt;
+        }
+        DependencyPackage dep(name, origin, path, version, hash);
         record.addDependency(dep);
       }
     }

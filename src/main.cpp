@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "build_info.h"
+#include "bundle.h"
 #include "logger.h"
 #include "postprocessor.h"
 #include "preprocessor.h"
@@ -27,19 +28,41 @@ void printUsage(const char* program_name) {
                " -o my_build.yaml -l /tmp/logs make clean all");
 }
 
+bool handleBundle(const std::string& record_path,
+                  const std::string& bundle_path) {
+  BuildRecord record;
+  try {
+    record = BuildRecord::loadFromFile(record_path);
+  } catch (const std::exception& e) {
+    Logger::error("Failed to load build record: " + std::string(e.what()));
+    return false;
+  }
+
+  try {
+    createBundle(record, bundle_path);
+  } catch (const std::exception& e) {
+    Logger::error("Failed to create bundle: " + std::string(e.what()));
+    return false;
+  }
+
+  return true;
+}
+
 int main(int argc, char* argv[]) {
   std::string output_file = "build_record.yaml";
   std::string log_dir = "/tmp";
+  bool bundle = false;
 
   // Parse command line options
   static struct option long_options[] = {{"output", required_argument, 0, 'o'},
                                          {"logdir", required_argument, 0, 'l'},
+                                         {"bundle", no_argument, 0, 'b'},
                                          {"help", no_argument, 0, 'h'},
                                          {0, 0, 0, 0}};
 
   int c;
   int option_index = 0;
-  while ((c = getopt_long(argc, argv, "+o:l:h", long_options, &option_index)) !=
+  while ((c = getopt_long(argc, argv, "o:l:bh", long_options, &option_index)) !=
          -1) {
     switch (c) {
       case 'o':
@@ -47,6 +70,9 @@ int main(int argc, char* argv[]) {
         break;
       case 'l':
         log_dir = optarg;
+        break;
+      case 'b':
+        bundle = true;
         break;
       case 'h':
         printUsage(argv[0]);
@@ -63,6 +89,15 @@ int main(int argc, char* argv[]) {
   if (optind >= argc) {
     printUsage(argv[0]);
     return 1;
+  }
+
+  if (bundle) {
+    std::string record_path = argv[optind];   // Input build record file
+    std::string bundle_output = output_file;  // Output bundle file
+    if (!handleBundle(record_path, bundle_output)) {
+      return 1;
+    }
+    return 0;
   }
 
   // Collect build command from remaining arguments
