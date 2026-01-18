@@ -13,6 +13,7 @@ BuildInfo::BuildInfo(std::string build_command, std::string output_file,
   build_timestamp_ = Utils::getCurrentTimestamp();
   build_path_ = std::filesystem::current_path().string();
   git_commit_log_path_ = log_dir_ + "/git_clone_commits.log";
+  package_mgr_ = Utils::checkPackageManager();
 }
 
 void BuildInfo::fillBuildRecordMetadata() {

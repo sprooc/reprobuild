@@ -1,0 +1,302 @@
+# Build Record for 
+metadata:
+  architecture: x86_64
+  distribution: Fedora Linux 40 (Container Image)
+  build_cmd: make
+  build_path: /work
+  build_timestamp: 2026-01-18T09:30:52+00:00
+  hostname: c7a7b2481069
+  locale: "LANG=C.UTF-8\nLC_CTYPE=\"C.UTF-8\"\nLC_NUMERIC=\"C.UTF-8\"\nLC_TIME=\"C.UTF-8\"\nLC_COLLATE=\"C.UTF-8\"\nLC_MONETARY=\"C.UTF-8\"\nLC_MESSAGES=\"C.UTF-8\"\nLC_PAPER=\"C.UTF-8\"\nLC_NAME=\"C.UTF-8\"\nLC_ADDRESS=\"C.UTF-8\"\nLC_TELEPHONE=\"C.UTF-8\"\nLC_MEASUREMENT=\"C.UTF-8\"\nLC_IDENTIFICATION=\"C.UTF-8\"\nLC_ALL="
+  umask: 0022
+  random_seed: 0
+dependencies:
+  - name: binutils
+    path: /usr/bin/ranlib
+    version: 2.41-38.fc40
+    hash: 59c7a2e2e95fe608258b9867540cdded67cb8974b259c7d15660a4b3215ab421
+    origin: dnf
+  - name: bzip2-libs
+    path: /usr/lib64/libbz2.so.1.0.8
+    version: 1.0.8-18.fc40
+    hash: 42c22f7af136c3ba53b77cd4c096e20429e0e727d1a44bc9c693973dd8af5569
+    origin: dnf
+  - name: cmake
+    path: /usr/bin/cmake
+    version: 3.30.8-1.fc40
+    hash: 09fb32f85a8b0a8c560123ceaaea1d63519f0cc0c65ddebd175c13bab4afae61
+    origin: dnf
+  - name: cmake-data
+    path: /usr/share/cmake/Modules/CMakePlatformId.h.in
+    version: 3.30.8-1.fc40
+    hash: 748d2c991a6d940815f9b4af69b06d26eadf993629dd69b9b0de3c1d7f939086
+    origin: dnf
+  - name: coreutils
+    path: /usr/bin/uname
+    version: 9.4-9.fc40
+    hash: 121c2ae1d75a2d0e518b0d96b6815937be56d0733913d06855375ab60fe83a2d
+    origin: dnf
+  - name: cyrus-sasl-lib
+    path: /usr/lib64/libsasl2.so.3.0.0
+    version: 2.1.28-19.fc40
+    hash: e6deebb6433ddcabeef3ea072b4edd6944e74c9f2f7016ad74b0277a25ad52e5
+    origin: dnf
+  - name: gc
+    path: /usr/lib64/libgc.so.1.5.1
+    version: 8.2.2-6.fc40
+    hash: 1d6788beab96ed36f3206a99c77a4d9d5f02243c271be73c62f4b0790a03a1b5
+    origin: dnf
+  - name: gcc
+    path: /usr/libexec/gcc/x86_64-redhat-linux/14/collect2
+    version: 14.2.1-3.fc40
+    hash: b227afd2004e82942b0845d80d2de6fa56fb1f2a63cdb7cdb696faf0e6ce510d
+    origin: dnf
+  - name: gcc-c++
+    path: /usr/libexec/gcc/x86_64-redhat-linux/14/cc1plus
+    version: 14.2.1-3.fc40
+    hash: 50e79bbccb30c072185fec772bb547babced74468e8e568554d566dd895a23c5
+    origin: dnf
+  - name: glibc
+    path: /usr/lib64/libresolv.so.2
+    version: 2.39-38.fc40
+    hash: 797002571a833f084e881dad9994378cfbc0e0d6075bc91e8cc77463a124ecd1
+    origin: dnf
+  - name: glibc-devel
+    path: /usr/include/wctype.h
+    version: 2.39-38.fc40
+    hash: 9ae8c4c9ea7aa89862b4c60edd069ccb04aa81023dfee97ea1dd3150cf10f250
+    origin: dnf
+  - name: gmp
+    path: /usr/lib64/libgmp.so.10.4.1
+    version: 6.2.1-8.fc40
+    hash: 7082eea866dcbfa3b78173ebb9650b4c19820e5e7c836d2f4d82d02e53433724
+    origin: dnf
+  - name: gtest-devel
+    path: /usr/include/gtest/internal/gtest-type-util.h
+    version: 1.14.0-4.fc40
+    hash: c1cf53463579025a7b25466e9680a778d74beff52d8a64b6e83fcb6dd99e4bb7
+    origin: dnf
+  - name: guile30
+    path: /usr/lib64/libguile-3.0.so.1.4.0
+    version: 3.0.7-12.fc40
+    hash: 62a8531902af7f39c007d28b7127fd2f58a636cfa37954fe8d376b3c25ddb2d6
+    origin: dnf
+  - name: jansson
+    path: /usr/lib64/libjansson.so.4.13.0
+    version: 2.13.1-9.fc40
+    hash: 5b724062105cc21e538cd8e5edc14bce58af9bc6764576cbb858d3883b1e8047
+    origin: dnf
+  - name: jsoncpp
+    path: /usr/lib64/libjsoncpp.so.1.9.5
+    version: 1.9.5-7.fc40
+    hash: 927c4396a5ca768a678112f6830b150dd44392ebda6c2ca361641fd989a0d5ed
+    origin: dnf
+  - name: kernel-headers
+    path: /usr/include/linux/types.h
+    version: 6.14.3-100.fc40
+    hash: 4152b3c5d095f5cf0adf5cc13ee0670e737eb7c4efef5fa08e9d1eb87e68ed78
+    origin: dnf
+  - name: keyutils-libs
+    path: /usr/lib64/libkeyutils.so.1.10
+    version: 1.6.3-3.fc40
+    hash: a29c0afb6d88282baf1644287e0bfc6d411ec7303e1f0373a6839489a4556c7d
+    origin: dnf
+  - name: krb5-libs
+    path: /usr/lib64/libkrb5support.so.0.1
+    version: 1.21.3-2.fc40
+    hash: d9299ef8a5e876a3dbb028e20a01152e78e94eab3ddb8409e6715837ec05aed4
+    origin: dnf
+  - name: libacl
+    path: /usr/lib64/libacl.so.1.1.2302
+    version: 2.3.2-1.fc40
+    hash: a7a199f74ebe66c427ed0cf75c3e843e11b6bfd4af794ece57c2bafd3d69377e
+    origin: dnf
+  - name: libarchive
+    path: /usr/lib64/libarchive.so.13.7.2
+    version: 3.7.2-7.fc40
+    hash: 7572dcc39ca44f02a207ba216fd45555ecfd2a3b80581b50dbd5567d3c4a41bb
+    origin: dnf
+  - name: libattr
+    path: /usr/lib64/libattr.so.1.1.2502
+    version: 2.5.2-3.fc40
+    hash: e186ecc0227c6d86af5245bb65dbb6d265281fe4aa26502faf4c6d0957141962
+    origin: dnf
+  - name: libbrotli
+    path: /usr/lib64/libbrotlidec.so.1.1.0
+    version: 1.1.0-3.fc40
+    hash: 0816a20e88eeaa928bf8fc723d328bf6c92a739a47786e83221d82d62554fed0
+    origin: dnf
+  - name: libcom_err
+    path: /usr/lib64/libcom_err.so.2.1
+    version: 1.47.0-5.fc40
+    hash: 4d338c0ac983d29692b67b87984e9b27c0e7ee2c840a014fd8b4d3a62a4b2a02
+    origin: dnf
+  - name: libcurl
+    path: /usr/lib64/libcurl.so.4.8.0
+    version: 8.6.0-10.fc40
+    hash: cb214b24ac470747e6fd2e98137755696258ddf6b12000edd331e140de325b56
+    origin: dnf
+  - name: libevent
+    path: /usr/lib64/libevent-2.1.so.7.0.1
+    version: 2.1.12-12.fc40
+    hash: ae23d03784cf17df519b944225fee74a0cfe368e1fbf4bb2c50b233937e52998
+    origin: dnf
+  - name: libffi
+    path: /usr/lib64/libffi.so.8.1.2
+    version: 3.4.4-7.fc40
+    hash: 51d9031d4acdc6b453fff8a59eb8261b3da4f31a66d7562d16205c6a0b216a62
+    origin: dnf
+  - name: libgcc
+    path: /usr/lib64/libgcc_s-14-20240912.so.1
+    version: 14.2.1-3.fc40
+    hash: 7cc4a2ce8974a9ae94b8940357f0623ec40c71636ebf8f939b12b380b83e9bb3
+    origin: dnf
+  - name: libidn2
+    path: /usr/lib64/libidn2.so.0.4.0
+    version: 2.3.7-1.fc40
+    hash: 2f86ebe2b1fc02b99ea97516db333cde8d7133c79083bf2bfb5d69c9cef48eb5
+    origin: dnf
+  - name: libmpc
+    path: /usr/lib64/libmpc.so.3.3.1
+    version: 1.3.1-5.fc40
+    hash: ea8e6522ed15bab1d5816734a858fb448c346f832811902977a4fb86ce440e31
+    origin: dnf
+  - name: libnghttp2
+    path: /usr/lib64/libnghttp2.so.14.26.0
+    version: 1.59.0-3.fc40
+    hash: 31c59c62ba7ccd3e1de50ad8469af92a1d489306d9def6248703a1998492ddbc
+    origin: dnf
+  - name: libpsl
+    path: /usr/lib64/libpsl.so.5.3.5
+    version: 0.21.5-3.fc40
+    hash: 196ce1d17d35c9f097002ec55180cd9d924ffba377e94ed851c373eb2e7d087e
+    origin: dnf
+  - name: libselinux
+    path: /usr/lib64/libselinux.so.1
+    version: 3.7-5.fc40
+    hash: 97107e744f451a43daf82a4c57515ac26059a312e0334832ca26dcbe6da1ab73
+    origin: dnf
+  - name: libssh
+    path: /usr/lib64/libssh.so.4.9.6
+    version: 0.10.6-5.fc40
+    hash: 7cdc7aafa5d45b474d03b14685407d3d18e4e0654792d7dd9d292bc1eea81e25
+    origin: dnf
+  - name: libstdc++
+    path: /usr/lib64/libstdc++.so.6.0.33
+    version: 14.2.1-3.fc40
+    hash: 859b4f3718d00556cd005b6a12a0281e5b93bfd282c2dd50e315295629283067
+    origin: dnf
+  - name: libstdc++-devel
+    path: /usr/include/c++/14/x86_64-redhat-linux/bits/time_members.h
+    version: 14.2.1-3.fc40
+    hash: 667060c46b396fadf2cc2927bf7c2a419785cc5d901223408203d261f068cefc
+    origin: dnf
+  - name: libunistring
+    path: /usr/lib64/libunistring.so.5.0.0
+    version: 1.1-7.fc40
+    hash: 93722b9c1d0d1971b7a7cf689075139308b5b540737a822bb3b7fb4c873f0bac
+    origin: dnf
+  - name: libuv
+    path: /usr/lib64/libuv.so.1.0.0
+    version: 1.51.0-1.fc40
+    hash: 18d237fcf3cbb03589d3de803868c62305638a7e1b75bb555d78ff0cb51a37d6
+    origin: dnf
+  - name: libxcrypt
+    path: /usr/lib64/libcrypt.so.2.0.0
+    version: 4.4.38-7.fc40
+    hash: cbb74740d2146bae4d885282f2e6579af14ae135f31845fa83c1e4d0b6c58cef
+    origin: dnf
+  - name: libxml2
+    path: /usr/lib64/libxml2.so.2.12.9
+    version: 2.12.9-1.fc40
+    hash: 898dc0a176eb27eed29d55512e5e16c98a3f975b16fab96408bb37055511c8be
+    origin: dnf
+  - name: libzstd
+    path: /usr/lib64/libzstd.so.1.5.6
+    version: 1.5.6-1.fc40
+    hash: 9b7b600b50b19ed94cf63fc48411f29d14cb1d061abefbbc297c5d1ad830bbc5
+    origin: dnf
+  - name: lz4-libs
+    path: /usr/lib64/liblz4.so.1.9.4
+    version: 1.9.4-6.fc40
+    hash: bdaa1a2471ee3346b1d81f9b6932e99b1ba285ab97157ddc1d7b9e8c09f8c927
+    origin: dnf
+  - name: make
+    path: /usr/bin/make
+    version: 4.4.1-6.fc40
+    hash: 48c7a5bef2bfdb480d96c5c0e7d6700d770bad02018868763b71a75d6897adb1
+    origin: dnf
+  - name: mpfr
+    path: /usr/lib64/libmpfr.so.6.2.1
+    version: 4.2.1-4.fc40
+    hash: 9d9c30dceafc6ecd852ad88ef9394af94589164c89651802d92bea2d6d528e2b
+    origin: dnf
+  - name: ncurses-libs
+    path: /usr/lib64/libtinfo.so.6.4
+    version: 6.4-12.20240127.fc40
+    hash: 32db9288a89f8797f2686fff322892dd399307cc9f2a0dd25e72179d4406cffb
+    origin: dnf
+  - name: openldap
+    path: /usr/lib64/libldap.so.2.0.200
+    version: 2.6.8-1.fc40
+    hash: 669dff4536f8594e8f35c1fca2ede15d0a1c4ae6baf75cc7ded4fdda5e9d1882
+    origin: dnf
+  - name: openssl-libs
+    path: /usr/lib64/libssl.so.3.2.2
+    version: 3.2.2-3.fc40
+    hash: 8ddf7812d5e8b4c0e9318c7200f31d9338a3549acb22ae8d9e6979e2088a5384
+    origin: dnf
+  - name: "package file is not installed\npackage /work/libreprobuild_interceptor.so is not installed\npackage is is not installed\npackage not is not installed\npackage owned is not installed\npackage by is not installed\npackage any is not installed\npackage package is not installed"
+    path: /work/libreprobuild_interceptor.so
+    version: "package file is not installed\npackage /work/libreprobuild_interceptor.so is not installed\npackage is is not installed\npackage not is not installed\npackage owned is not installed\npackage by is not installed\npackage any is not installed\npackage package is not installed"
+    hash: ec0eb63fb43721b7c657608945eff5a7f10a1d2b8d4219a03ae58a34b8150353
+    origin: dnf
+  - name: pcre2
+    path: /usr/lib64/libpcre2-8.so.0.13.0
+    version: 10.44-1.fc40
+    hash: 9c585f978f4ef73bed765f54aaeb2dafbae5a058b0e68e8a90f63b803f4e90e4
+    origin: dnf
+  - name: python3
+    path: /usr/bin/python3.12
+    version: 3.12.8-2.fc40
+    hash: 8b908b18bf049d0a72399814d93eca14546028d3e9bd32c83d949264b1b4962e
+    origin: dnf
+  - name: python3-libs
+    path: /usr/lib64/libpython3.12.so.1.0
+    version: 3.12.8-2.fc40
+    hash: 59cdea66e6b9d2493c82a45375e50c169ae641151c616155fe64e9485344d1dc
+    origin: dnf
+  - name: rhash
+    path: /usr/lib64/librhash.so.0
+    version: 1.4.3-4.fc40
+    hash: 9719e920021d5a0b4fc36d489a0219e83fae2730839834c82fa690893f919c57
+    origin: dnf
+  - name: xz-libs
+    path: /usr/lib64/liblzma.so.5.4.6
+    version: 5.4.6-3.fc40
+    hash: 99fcf3550cbf423d0936c14b9084878e5ac4a477197d82bb56b52dbe4bd87bc5
+    origin: dnf
+  - name: yaml-cpp
+    path: /usr/lib64/libyaml-cpp.so.0.7.0
+    version: 0.7.0-5.fc40
+    hash: aa005d5616886a24a7001a342b51ad3cfd868d1b55ab14e491277afd7010e6f4
+    origin: dnf
+  - name: yaml-cpp-devel
+    path: /usr/include/yaml-cpp/yaml.h
+    version: 0.7.0-5.fc40
+    hash: 946643e99e2f865887852f838a66130c54ed770645a73f2c5f8b71b9bb2b1488
+    origin: dnf
+  - name: zlib-ng-compat
+    path: /usr/lib64/libz.so.1.3.1.zlib-ng
+    version: 2.1.7-2.fc40
+    hash: adf144987ecb10e7bfd201e50c040c994432d28529c1817db3bdcab7f62bdcdd
+    origin: dnf
+artifacts:
+  - path: build/bin/reprobuild_tests
+    hash: c3afb0f54cd2307b739a875ae6ec6943ac91b97f70a8daaf6ae0bcccfdc45aad
+    type: executable
+  - path: build/libreprobuild_interceptor.so
+    hash: 4b748aa3d0aa4c647fc77e9b65007ad74f93172178a207dc09b0213ccf71f9be
+    type: shared_library
+  - path: build/reprobuild
+    hash: dda9f97ec02ca6169b152bdd0e7d81cb1136255307d92bc2383da5401216a67b
+    type: executable

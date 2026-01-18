@@ -5,6 +5,8 @@
 
 #include "build_record.h"
 
+enum class PackageMgr { APT, DNF, YUM, PACMAN, UNKNOWN };
+
 class BuildInfo {
  public:
   BuildInfo(std::string build_command, std::string output_file,
@@ -20,6 +22,8 @@ class BuildInfo {
 
   std::string interceptor_lib_path_;
   std::string git_commit_log_path_;
+
+  PackageMgr package_mgr_;
 
   BuildRecord build_record_;
 

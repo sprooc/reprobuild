@@ -14,18 +14,20 @@
 #include "utils.h"
 
 void printUsage(const char* program_name) {
-  Logger::warn(std::string("Usage: ") + program_name +
-               " [OPTIONS] <command...>");
-  Logger::warn("Options:");
-  Logger::warn(
+  std::cerr << (std::string("Usage: ") + program_name +
+               " [OPTIONS] <command...>") << std::endl;
+  std::cerr << "Options:" << std::endl;
+  std::cerr <<
       "  -o, --output <file>    Output file for build record (default: "
-      "build_record.yaml)");
-  Logger::warn(
+      "build_record.yaml)" << std::endl;
+  std::cerr <<
       "  -l, --logdir <dir>     Log directory for tracking files (default: "
-      "./logs)");
-  Logger::warn("  -h, --help             Show this help message");
-  Logger::warn(std::string("Example: ") + program_name +
-               " -o my_build.yaml -l /tmp/logs make clean all");
+      "./logs)" << std::endl;
+  std::cerr <<
+      "  -b, --bundle           Create a bundle from existing build record" << std::endl;
+  std::cerr << "  -h, --help             Show this help message" << std::endl;
+  std::cerr << std::string("Example: ") + program_name +
+               " -o my_build.yaml -l /tmp/logs make clean all" << std::endl;
 }
 
 bool handleBundle(const std::string& record_path,

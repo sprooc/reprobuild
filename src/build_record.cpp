@@ -119,10 +119,16 @@ void BuildRecord::saveToFile(const std::string& filepath) const {
     dep_node["version"] = dep.getVersion();
     dep_node["hash"] = dep.getHashValue();
     switch (dep.getOrigin()) {
-      case DependencyOrigin::Apt:
+      case DependencyOrigin::APT:
         dep_node["origin"] = "apt";
         break;
-      case DependencyOrigin::Custom:
+      case DependencyOrigin::DNF:
+        dep_node["origin"] = "dnf";
+        break;
+      case DependencyOrigin::PACMAN:
+        dep_node["origin"] = "pacman";
+        break;
+      case DependencyOrigin::CUSTOM:
         dep_node["origin"] = "custom";
         break;
     }
@@ -185,9 +191,13 @@ BuildRecord BuildRecord::loadFromFile(const std::string& filepath) {
         std::string version = dep_node["version"].as<std::string>();
         std::string hash = dep_node["hash"].as<std::string>();
         std::string origin_str = dep_node["origin"].as<std::string>();
-        DependencyOrigin origin = DependencyOrigin::Custom;
+        DependencyOrigin origin = DependencyOrigin::CUSTOM;
         if (origin_str == "apt") {
-          origin = DependencyOrigin::Apt;
+          origin = DependencyOrigin::APT;
+        } else if (origin_str == "dnf") {
+          origin = DependencyOrigin::DNF;
+        } else if (origin_str == "pacman") {
+          origin = DependencyOrigin::PACMAN;
         }
         DependencyPackage dep(name, origin, path, version, hash);
         record.addDependency(dep);

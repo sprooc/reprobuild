@@ -87,87 +87,143 @@ std::ostream& operator<<(std::ostream& os, const DependencyPackage& package) {
   return os;
 }
 
-// Helper function to execute shell command and get output
-static std::string executeCommand(const std::string& command) {
-  std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(command.c_str(), "r"),
-                                             pclose);
+bool checkPackageWithDpkg(const std::string& raw_file_path,
+                          DependencyPackage& package) {
+  // Get realpath of the file
+  std::string realpath_command = "realpath " + raw_file_path;
+  std::string real_path = Utils::executeCommand(realpath_command);
 
-  if (!pipe) {
-    throw std::runtime_error("Failed to execute command: " + command);
+  // Use dpkg -S to find which package owns the file
+  // Try raw file path first, then real path if needed
+  std::string dpkg_command =
+      "dpkg -S " + raw_file_path + " 2>/dev/null | head -1 | cut -d: -f1";
+  std::string package_name = Utils::executeCommand(dpkg_command);
+
+  if (package_name.empty() || Utils::startsWith(package_name, "diversion by")) {
+    // If raw path failed, try with real path
+    dpkg_command =
+        "dpkg -S " + real_path + " 2>/dev/null | head -1 | cut -d: -f1";
+    package_name = Utils::executeCommand(dpkg_command);
   }
 
-  std::string result;
-  char buffer[128];
-  while (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr) {
-    result += buffer;
+  if (package_name.empty()) {
+    return false;  // Package not found
   }
 
-  // Remove trailing newline
-  if (!result.empty() && result.back() == '\n') {
-    result.pop_back();
+  // Get precise version using dpkg-query
+  std::string version_command =
+      "dpkg-query -W -f='${Version}\\n' " + package_name + " 2>/dev/null";
+  std::string version = Utils::executeCommand(version_command);
+
+  if (version.empty()) {
+    throw std::runtime_error("Could not get version for package: " +
+                             package_name);
   }
 
-  return result;
+  // Calculate SHA256 hash of the file
+  std::string hash_value = Utils::calculateFileHash(real_path);
+
+  if (hash_value.empty()) {
+    throw std::runtime_error("Could not calculate hash for file: " +
+                             raw_file_path);
+  }
+
+  package = DependencyPackage(package_name, DependencyOrigin::APT, real_path,
+                              version, hash_value);
+  return true;
+}
+
+bool checkPackageWithRpm(const std::string& raw_file_path,
+                         DependencyPackage& package) {
+  // Get realpath of the file
+  std::string realpath_command = "realpath " + raw_file_path;
+  std::string real_path = Utils::executeCommand(realpath_command);
+
+  // Use rpm -qf to find which package owns the file
+  std::string rpm_command =
+      "rpm -qf " + raw_file_path + " 2>/dev/null | head -1 | cut -d: -f1";
+  std::string package_name = Utils::executeCommand(rpm_command);
+
+  if (package_name.empty()) {
+    // If raw path failed, try with real path
+    rpm_command =
+        "rpm -qf " + real_path + " 2>/dev/null | head -1 | cut -d: -f1";
+    package_name = Utils::executeCommand(rpm_command);
+  }
+
+  if (package_name.empty()) {
+    return false;  // Package not found
+  }
+
+  // Get precise package name without version
+  std::string name_command =
+      "rpm -q --qf '%{NAME}\n' " + package_name + " 2>/dev/null";
+  std::string package_name_clean = Utils::executeCommand(name_command);
+  if (package_name_clean.empty()) {
+    throw std::runtime_error("Could not get name for package: " + package_name);
+  }
+
+  // Get precise version using rpm
+  std::string version_command =
+      "rpm -q --qf '%{VERSION}-%{RELEASE}\n' " + package_name + " 2>/dev/null";
+  std::string version = Utils::executeCommand(version_command);
+
+  if (version.empty()) {
+    throw std::runtime_error("Could not get version for package: " +
+                             package_name);
+  }
+
+  // Calculate SHA256 hash of the file
+  std::string hash_value = Utils::calculateFileHash(real_path);
+
+  if (hash_value.empty()) {
+    throw std::runtime_error("Could not calculate hash for file: " +
+                             raw_file_path);
+  }
+
+  package = DependencyPackage(package_name_clean, DependencyOrigin::DNF,
+                              real_path, version, hash_value);
+  return true;
 }
 
 // Static method to create a DependencyPackage from a raw file
 DependencyPackage DependencyPackage::fromRawFile(
-    const std::string& raw_file_path) {
+    const std::string& raw_file_path, PackageMgr pkg_mgr) {
   try {
     // Check if file exists
     if (!std::filesystem::exists(raw_file_path)) {
       throw std::runtime_error("File does not exist: " + raw_file_path);
     }
 
-    // Step 1: Get realpath of the file
-    std::string realpath_command = "realpath " + raw_file_path;
-    std::string real_path = executeCommand(realpath_command);
+    DependencyPackage package;
+    bool success = false;
 
-    // Step 2: Use dpkg -S to find which package owns the file
-    // Try raw file path first, then real path if needed
-    std::string dpkg_command =
-        "dpkg -S " + raw_file_path + " 2>/dev/null | head -1 | cut -d: -f1";
-    std::string package_name = executeCommand(dpkg_command);
-
-    if (package_name.empty() || package_name.substr(0, 12) == "diversion by") {
-      // If raw path failed, try with real path
-      dpkg_command =
-          "dpkg -S " + real_path + " 2>/dev/null | head -1 | cut -d: -f1";
-      package_name = executeCommand(dpkg_command);
+    switch (pkg_mgr) {
+      case PackageMgr::APT:
+        success = checkPackageWithDpkg(raw_file_path, package);
+        break;
+      case PackageMgr::DNF:
+      case PackageMgr::YUM:
+        success = checkPackageWithRpm(raw_file_path, package);
+        break;
+      default:
+        throw std::runtime_error("Unsupported package manager");
     }
 
-    if (package_name.empty()) {
+    if (success) {
+      return package;
+    } else {
       // Custom file not owned by any package
+      std::string realpath_command = "realpath " + raw_file_path;
+      std::string real_path = Utils::executeCommand(realpath_command);
       std::string package_name =
-          std::filesystem::path(raw_file_path).filename().string();
+          std::filesystem::path(real_path).filename().string();
       std::string hash_value = Utils::calculateFileHash(real_path);
       DependencyPackage package =
-          DependencyPackage(package_name, DependencyOrigin::Custom, real_path,
-                            "custom", hash_value);
+          DependencyPackage(package_name, DependencyOrigin::CUSTOM,
+                            real_path, "custom", hash_value);
       return package;
     }
-
-    // Step 3: Get precise version using dpkg-query
-    std::string version_command =
-        "dpkg-query -W -f='${Version}\\n' " + package_name + " 2>/dev/null";
-    std::string version = executeCommand(version_command);
-
-    if (version.empty()) {
-      throw std::runtime_error("Could not get version for package: " +
-                               package_name);
-    }
-
-    // Step 4: Calculate SHA256 hash of the file
-    std::string hash_value = Utils::calculateFileHash(real_path);
-
-    if (hash_value.empty()) {
-      throw std::runtime_error("Could not calculate hash for file: " +
-                               raw_file_path);
-    }
-
-    // Create and return DependencyPackage object
-    return DependencyPackage(package_name, DependencyOrigin::Apt, real_path,
-                             version, hash_value);
 
   } catch (const std::exception& e) {
     // If any step fails, return an invalid package with error information

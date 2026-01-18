@@ -14,28 +14,51 @@
 
 namespace Utils {
 
+bool contains(const std::string& s, const std::string& key) {
+  return s.find(key) != std::string::npos;
+}
+
+bool startsWith(const std::string& s, const std::string& prefix) {
+  return s.rfind(prefix, 0) == 0;
+}
+
+bool endsWith(const std::string& s, const std::string& suffix) {
+  if (s.length() >= suffix.length()) {
+    return (0 ==
+            s.compare(s.length() - suffix.length(), suffix.length(), suffix));
+  } else {
+    return false;
+  }
+}
+
+// Helper function to execute shell command and get output
+std::string executeCommand(const std::string& command) {
+  std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(command.c_str(), "r"),
+                                             pclose);
+
+  if (!pipe) {
+    throw std::runtime_error("Failed to execute command: " + command);
+  }
+
+  std::string result;
+  char buffer[128];
+  while (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr) {
+    result += buffer;
+  }
+
+  // Remove trailing newline
+  if (!result.empty() && result.back() == '\n') {
+    result.pop_back();
+  }
+
+  return result;
+}
+
 std::string calculateFileHash(const std::string& filepath) {
   try {
     std::string hash_command =
         "sha256sum \"" + filepath + "\" 2>/dev/null | cut -d' ' -f1";
-    std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(hash_command.c_str(), "r"),
-                                               pclose);
-
-    if (!pipe) {
-      return "";
-    }
-
-    char buffer[128];
-    std::string result;
-    if (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr) {
-      result = buffer;
-      // Remove trailing newline
-      if (!result.empty() && result.back() == '\n') {
-        result.pop_back();
-      }
-    }
-
-    return result;
+    return executeCommand(hash_command);
   } catch (const std::exception& e) {
     Logger::warn("Error calculating hash for " + filepath + ": " + e.what());
     return "";
@@ -44,45 +67,13 @@ std::string calculateFileHash(const std::string& filepath) {
 
 std::string getCurrentTimestamp() {
   std::string date_command = "date -Iseconds 2>/dev/null";
-  std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(date_command.c_str(), "r"),
-                                             pclose);
-
-  if (!pipe) {
-    return "Unknown";
-  }
-
-  char buffer[128];
-  std::string result;
-  if (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr) {
-    result = buffer;
-    // Remove trailing newline
-    if (!result.empty() && result.back() == '\n') {
-      result.pop_back();
-    }
-  }
-
+  std::string result = executeCommand(date_command);
   return result.empty() ? "Unknown" : result;
 }
 
 std::string getArchitecture() {
   std::string arch_command = "uname -m 2>/dev/null";
-  std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(arch_command.c_str(), "r"),
-                                             pclose);
-
-  if (!pipe) {
-    return "Unknown";
-  }
-
-  char buffer[128];
-  std::string result;
-  if (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr) {
-    result = buffer;
-    // Remove trailing newline
-    if (!result.empty() && result.back() == '\n') {
-      result.pop_back();
-    }
-  }
-
+  std::string result = executeCommand(arch_command);
   return result.empty() ? "Unknown" : result;
 }
 
@@ -106,77 +97,19 @@ std::string getDistribution() {
 
   // Fallback to lsb_release command
   std::string lsb_command = "lsb_release -d -s 2>/dev/null";
-  std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(lsb_command.c_str(), "r"),
-                                             pclose);
-
-  if (pipe) {
-    char buffer[256];
-    std::string result;
-    if (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr) {
-      result = buffer;
-      // Remove trailing newline
-      if (!result.empty() && result.back() == '\n') {
-        result.pop_back();
-      }
-      // Remove quotes if present
-      if (result.front() == '"' && result.back() == '"') {
-        result = result.substr(1, result.length() - 2);
-      }
-      if (!result.empty()) {
-        return result;
-      }
-    }
-  }
-
-  return "Unknown";
+  std::string result = executeCommand(lsb_command);
+  return result.empty() ? "Unknown" : result;
 }
 
 std::string getHostname() {
-  std::string hostname_command = "hostname 2>/dev/null";
-  std::unique_ptr<FILE, int (*)(FILE*)> pipe(
-      popen(hostname_command.c_str(), "r"), pclose);
-
-  if (!pipe) {
-    return "Unknown";
-  }
-
-  char buffer[128];
-  std::string result;
-  if (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr) {
-    result = buffer;
-    // Remove trailing newline
-    if (!result.empty() && result.back() == '\n') {
-      result.pop_back();
-    }
-  }
-
+  std::string hostname_command = "uname -n 2>/dev/null";
+  std::string result = executeCommand(hostname_command);
   return result.empty() ? "Unknown" : result;
 }
 
 std::string getLocale() {
   std::string locale_command = "locale 2>/dev/null";
-  std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(locale_command.c_str(), "r"),
-                                             pclose);
-
-  if (!pipe) {
-    return "Unknown";
-  }
-
-  std::string result;
-  char buffer[256];
-  // Read all lines and concatenate them
-  while (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr) {
-    std::string line = buffer;
-    // Remove trailing newline
-    if (!line.empty() && line.back() == '\n') {
-      line.pop_back();
-    }
-    if (!result.empty()) {
-      result += ";";
-    }
-    result += line;
-  }
-
+  std::string result = executeCommand(locale_command);
   return result.empty() ? "Unknown" : result;
 }
 
@@ -196,20 +129,7 @@ void setSourceDateEpoch(const std::string& timestamp) {
 
   // Convert ISO timestamp to Unix timestamp for SOURCE_DATE_EPOCH
   std::string epoch_command = "date -d '" + timestamp + "' +%s 2>/dev/null";
-  std::unique_ptr<FILE, int (*)(FILE*)> pipe(popen(epoch_command.c_str(), "r"),
-                                             pclose);
-
-  std::string epoch_str;
-  if (pipe) {
-    char buffer[64];
-    if (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr) {
-      epoch_str = buffer;
-      // Remove trailing newline
-      if (!epoch_str.empty() && epoch_str.back() == '\n') {
-        epoch_str.pop_back();
-      }
-    }
-  }
+  std::string epoch_str = executeCommand(epoch_command);
 
   if (!epoch_str.empty()) {
     // Set SOURCE_DATE_EPOCH environment variable
@@ -248,13 +168,9 @@ std::string joinCommand(const std::vector<std::string>& command) {
 
     const std::string& arg = command[i];
     // Check if argument contains spaces or other shell special characters
-    if (arg.find(' ') != std::string::npos ||
-        arg.find('\t') != std::string::npos ||
-        arg.find('&') != std::string::npos ||
-        arg.find('|') != std::string::npos ||
-        arg.find(';') != std::string::npos ||
-        arg.find('(') != std::string::npos ||
-        arg.find(')') != std::string::npos) {
+    if (contains(arg, " ") || contains(arg, "\t") || contains(arg, "&") ||
+        contains(arg, "|") || contains(arg, ";") || contains(arg, "(") ||
+        contains(arg, ")")) {
       oss << "\"" << arg << "\"";
     } else {
       oss << arg;
@@ -263,6 +179,39 @@ std::string joinCommand(const std::vector<std::string>& command) {
   return oss.str();
 }
 
+PackageMgr checkPackageManager() {
+  std::string distro = getDistribution();
 
+  if (contains(distro, "Ubuntu") || contains(distro, "Debian")) {
+    return PackageMgr::APT;
+  } else if (contains(distro, "Fedora")) {
+    return PackageMgr::DNF;
+  } else if (contains(distro, "CentOS")) {
+    return PackageMgr::YUM;
+  } else if (contains(distro, "Arch Linux")) {
+    return PackageMgr::PACMAN;
+  } else {
+    return PackageMgr::UNKNOWN;  // Default to unknown
+  }
+}
+
+bool isSharedLib(const std::string& filepath) {
+  if (endsWith(filepath, ".so")) {
+    return true;
+  }
+  // Check for .so.<version> pattern
+  size_t so_pos = filepath.rfind(".so.");
+  if (so_pos != std::string::npos) {
+    // All characters after .so. should be digits or dots
+    std::string version_part = filepath.substr(so_pos + 4);
+    for (char c : version_part) {
+      if (!isdigit(c) && c != '.') {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
 
 }  // namespace Utils

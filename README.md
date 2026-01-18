@@ -112,3 +112,14 @@ git_commit_ids:
 ### 2026/1/10
 添加了git_commit_ids字段，记录构建过程中使用的Git仓库及其对应的提交ID。在重新构建时，拦截`git clone`命令，并使用对应的commit_id将代码滚回对应版本，确保源代码一致。
 拦截和回滚功能已在`libreprobuild_interceptor.so`中实现。需要在重建时创建一个文本文件，每一行为`<repo_url> <commit_id>`，空格隔开([参考](./tests/git-test/git_log))。并设置环境变量`REPROBUILD_LOG_GIT_CLONESG`指向该文件路径。
+
+### 2026/1/18
+1. 支持打包，将源代码和非官方依赖打包为一个压缩文件，方便在其他环境中解压复现构建。使用命令`./build/reprobuild -b build_record.yaml -o <output_file>`进行打包。压缩包的文件结构如下：
+    ```
+    ├── build_record.yaml
+    ├── src/               # 源代码目录
+    └── deps/              # 非官方依赖目录
+        └── <dependency_files>
+    ```
+2. 支持对非官方仓库的软件依赖。这些依赖会打包到上述压缩包的`deps/`目录中。在复现构建时，可以将此目录添加到`LD_LIBRARY_PATH`中，确保构建过程中能找到这些依赖。
+3. 支持rpm包管理系统。

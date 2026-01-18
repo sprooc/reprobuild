@@ -107,7 +107,7 @@ void Preprocessor::prepareBuildEnvironment() {
 
 void Preprocessor::fixMakefile() {
   std::string build_cmd = build_info_->build_command_;
-  if (build_cmd.find("make") == std::string::npos) {
+  if (!Utils::contains(build_cmd, "make")) {
     Logger::debug(
         "Build command does not contain 'make', skipping makefile fixing");
     return;

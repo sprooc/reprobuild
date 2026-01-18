@@ -77,9 +77,12 @@ std::set<std::string> Tracker::parseLibFiles(const std::string& strace_output) {
       }
 
       // Determine library type for better logging
-      bool is_static =
-          filepath.size() >= 2 && filepath.substr(filepath.size() - 2) == ".a";
-      bool is_dynamic = filepath.find(".so") != std::string::npos;
+      bool is_static = Utils::endsWith(filepath, ".a");
+      bool is_dynamic = Utils::isSharedLib(filepath);
+
+      if (!is_static && !is_dynamic) {
+        continue;  // Not a recognized library type
+      }
 
       if (is_static) {
         Logger::debug("Found static library: " + filepath);
@@ -152,7 +155,7 @@ std::set<std::string> Tracker::parseExecutables(
 
 bool Tracker::shouldIgnoreFile(const std::string& filepath) const {
   for (const auto& pattern : ignore_patterns_) {
-    if (filepath.find(pattern) != std::string::npos) {
+    if (Utils::contains(filepath, pattern)) {
       return true;
     }
   }
@@ -168,7 +171,7 @@ bool Tracker::shouldIgnoreLib(const std::string& filepath) const {
     return true;
   }
   
-  if (filepath.find(build_info_->build_path_) != std::string::npos) {
+  if (Utils::contains(filepath, build_info_->build_path_)) {
     // Ignore libraries in the build directory
     return true;
   }
@@ -182,7 +185,7 @@ bool Tracker::shouldIgnoreHeader(const std::string& filepath) const {
     return true;
   }
 
-  if (filepath.find(build_info_->build_path_) != std::string::npos) {
+  if (Utils::contains(filepath, build_info_->build_path_)) {
     // Ignore headers in the build directory
     return true;
   }
@@ -204,21 +207,20 @@ bool Tracker::shouldIgnoreExecutable(const std::string& filepath) const {
     return true;
   }
 
+  if (Utils::contains(filepath, build_info_->build_path_)) {
+    // Ignore executables in the build directory
+    return true;
+  }
+
   if (ignore_execs.find(filepath) != ignore_execs.end()) {
     return true;
   }
 
   // Use the same ignore patterns as for shared libraries
   for (const auto& pattern : ignore_patterns_) {
-    if (filepath.find(pattern) != std::string::npos) {
+    if (Utils::contains(filepath, pattern)) {
       return true;
     }
-  }
-
-  // Skip if it's in the current build directory
-  if (filepath.find("./") == 0 ||
-      filepath.find("build/") != std::string::npos) {
-    return true;
   }
 
   return false;
@@ -226,25 +228,25 @@ bool Tracker::shouldIgnoreExecutable(const std::string& filepath) const {
 
 bool Tracker::shouldIgnoreArtifact(const std::string& filepath) const {
   // Ignore CMake temporary files and directories
-  if (filepath.find("CMakeFiles/") != std::string::npos) {
+  if (Utils::contains(filepath, "CMakeFiles/")) {
     return true;
   }
 
   // Ignore CMake cache and configuration files
-  if (filepath.find("CMakeCache.txt") != std::string::npos ||
-      filepath.find("cmake_install.cmake") != std::string::npos ||
-      filepath.find("Makefile") != std::string::npos) {
+  if (Utils::contains(filepath, "CMakeCache.txt") ||
+      Utils::contains(filepath, "cmake_install.cmake") ||
+      Utils::contains(filepath, "Makefile")) {
     return true;
   }
 
   // Ignore object files and temporary files
-  if (filepath.size() >= 2 && filepath.substr(filepath.size() - 2) == ".o") {
+  if (Utils::endsWith(filepath, ".o")) {
     return true;
   }
 
   // Ignore temporary and intermediate files
-  if (filepath.find(".tmp") != std::string::npos ||
-      filepath.find(".temp") != std::string::npos) {
+  if (Utils::contains(filepath, ".tmp") ||
+      Utils::contains(filepath, ".temp")) {
     return true;
   }
 
@@ -278,7 +280,7 @@ void Tracker::trackBuild() {
     try {
       Logger::debug("Processing library file: " + library_file);
 
-      DependencyPackage dep = DependencyPackage::fromRawFile(library_file);
+      DependencyPackage dep = DependencyPackage::fromRawFile(library_file, build_info_->package_mgr_);
       if (dep.isValid()) {
         record.addDependency(dep);
         Logger::debug("  Added: " + dep.getPackageName() + " v" +
@@ -296,7 +298,7 @@ void Tracker::trackBuild() {
     try {
       Logger::debug("Processing header file: " + header_file);
 
-      DependencyPackage dep = DependencyPackage::fromRawFile(header_file);
+      DependencyPackage dep = DependencyPackage::fromRawFile(header_file, build_info_->package_mgr_);
       if (dep.isValid()) {
         record.addDependency(dep);
         Logger::debug("  Added: " + dep.getPackageName() + " v" +
@@ -314,7 +316,7 @@ void Tracker::trackBuild() {
     try {
       Logger::debug("Processing executable: " + executable);
 
-      DependencyPackage dep = DependencyPackage::fromRawFile(executable);
+      DependencyPackage dep = DependencyPackage::fromRawFile(executable, build_info_->package_mgr_);
       if (dep.isValid()) {
         record.addDependency(dep);
         Logger::debug("  Added: " + dep.getPackageName() + " v" +
@@ -391,13 +393,8 @@ void Tracker::detectBuildArtifacts(const std::string& strace_output,
         }
 
         // Check extension for shared libraries
-        bool has_so_extension =
-            (filepath.size() >= 3 &&
-             filepath.substr(filepath.size() - 3) == ".so") ||
-            filepath.find(".so.") != std::string::npos;
-        if (has_so_extension) {
-          is_shared_lib = true;
-        }
+        is_shared_lib = Utils::isSharedLib(filepath);
+
         Logger::debug("Created file " + filepath +
                       (is_executable ? " is executable." : "") +
                       (is_shared_lib ? " is shared library." : ""));

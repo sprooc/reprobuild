@@ -4,9 +4,10 @@
 #include <iostream>
 #include <string>
 
+enum class PackageMgr;
 // enum class DependencyKind { ShareLibrary, StaticLibrary, Executable };
 
-enum class DependencyOrigin { Apt, Custom };
+enum class DependencyOrigin { APT, DNF, PACMAN, CUSTOM };
 
 class DependencyPackage {
  public:
@@ -49,7 +50,7 @@ class DependencyPackage {
   bool operator!=(const DependencyPackage& other) const;
   bool operator<(const DependencyPackage& other) const;
 
-  static DependencyPackage fromRawFile(const std::string& raw_file_path);
+  static DependencyPackage fromRawFile(const std::string& raw_file_path, PackageMgr pkg_mgr);
 
  private:
   std::string package_name_;

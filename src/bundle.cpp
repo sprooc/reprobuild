@@ -32,7 +32,7 @@ void createBundle(const BuildRecord& record, const std::string& bundle_path) {
     // 1. Copy build_path folder if it exists and is not empty
     std::string build_path = record.getBuildPath();
     if (!build_path.empty() && fs::exists(build_path)) {
-      std::string dest_build_path = temp_dir + "/build";
+      std::string dest_build_path = temp_dir + "/src";
       fs::create_directories(dest_build_path);
 
       // Copy the entire build directory
@@ -45,14 +45,14 @@ void createBundle(const BuildRecord& record, const std::string& bundle_path) {
     }
 
     // 2. Copy all custom dependencies
-    std::string deps_dir = temp_dir + "/dependencies";
+    std::string deps_dir = temp_dir + "/deps";
     fs::create_directories(deps_dir);
 
     auto dependencies = record.getAllDependencies();
     int custom_dep_count = 0;
 
     for (const auto& dep : dependencies) {
-      if (dep.getOrigin() == DependencyOrigin::Custom) {
+      if (dep.getOrigin() == DependencyOrigin::CUSTOM) {
         std::string original_path = dep.getOriginalPath();
 
         if (!original_path.empty() && fs::exists(original_path)) {
@@ -100,7 +100,8 @@ void createBundle(const BuildRecord& record, const std::string& bundle_path) {
     } else if (ext == ".tar.xz") {
       archive_cmd = "cd " + temp_dir + " && tar -cJf " + abs_bundle_path + " .";
     } else if (ext == ".zip") {
-      archive_cmd = "cd " + temp_dir + " && zip -q -r " + abs_bundle_path + " .";
+      archive_cmd =
+          "cd " + temp_dir + " && zip -q -r " + abs_bundle_path + " .";
     } else {
       // Default to tar.gz
       archive_cmd =
