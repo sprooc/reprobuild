@@ -6,11 +6,14 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <regex>
 #include <sstream>
+#include <thread>
 
 #include "interceptor_embedded.h"
 #include "logger.h"
+#include "thread_pool.h"
 #include "utils.h"
 
 Tracker::Tracker(std::shared_ptr<BuildInfo> build_info)
@@ -170,7 +173,7 @@ bool Tracker::shouldIgnoreLib(const std::string& filepath) const {
   if (ignore_libs.find(filepath) != ignore_libs.end()) {
     return true;
   }
-  
+
   if (Utils::contains(filepath, build_info_->build_path_)) {
     // Ignore libraries in the build directory
     return true;
@@ -245,8 +248,7 @@ bool Tracker::shouldIgnoreArtifact(const std::string& filepath) const {
   }
 
   // Ignore temporary and intermediate files
-  if (Utils::contains(filepath, ".tmp") ||
-      Utils::contains(filepath, ".temp")) {
+  if (Utils::contains(filepath, ".tmp") || Utils::contains(filepath, ".temp")) {
     return true;
   }
 
@@ -256,7 +258,7 @@ bool Tracker::shouldIgnoreArtifact(const std::string& filepath) const {
 
 void Tracker::trackBuild() {
   Logger::info("Build command: " + build_info_->build_command_);
-
+  auto start_time = std::chrono::high_resolution_clock::now();
   std::string strace_output;
   try {
     strace_output = executeWithStrace(build_info_->build_command_);
@@ -264,6 +266,7 @@ void Tracker::trackBuild() {
     Logger::error("Error executing build command: " + std::string(e.what()));
     return;
   }
+  auto build_end_time = std::chrono::high_resolution_clock::now();
 
   auto library_files = parseLibFiles(strace_output);
   auto header_files = parseHeaderFiles(strace_output);
@@ -275,62 +278,66 @@ void Tracker::trackBuild() {
 
   BuildRecord& record = build_info_->build_record_;
 
-  // Process library files (both shared and static)
+  // Process all files concurrently using thread pool
+  const size_t max_threads =
+      std::min(8u, std::max(1u, std::thread::hardware_concurrency()));
+  ThreadPool pool(max_threads);
+  std::mutex record_mutex;  // Protect record operations
+  std::vector<std::future<void>> futures;
+
+  auto process_file = [&](const std::string& file_path) {
+    try {
+      Logger::debug("Processing file: " + file_path);
+
+      DependencyPackage dep =
+          DependencyPackage::fromRawFile(file_path, build_info_->package_mgr_);
+      if (dep.isValid()) {
+        {
+          std::lock_guard<std::mutex> lock(record_mutex);
+          record.addDependency(dep);
+        }
+        Logger::debug("  Added: " + dep.getPackageName() + " v" +
+                      dep.getVersion());
+      } else {
+        Logger::debug("  Skipped invalid dependency: " + file_path);
+      }
+    } catch (const std::exception& e) {
+      Logger::warn("Error processing file " + file_path + ": " + e.what());
+    }
+  };
+
   for (const auto& library_file : library_files) {
-    try {
-      Logger::debug("Processing library file: " + library_file);
-
-      DependencyPackage dep = DependencyPackage::fromRawFile(library_file, build_info_->package_mgr_);
-      if (dep.isValid()) {
-        record.addDependency(dep);
-        Logger::debug("  Added: " + dep.getPackageName() + " v" +
-                      dep.getVersion());
-      } else {
-        Logger::debug("  Skipped invalid dependency: " + library_file);
-      }
-    } catch (const std::exception& e) {
-      Logger::warn("Error processing " + library_file + ": " + e.what());
-    }
+    futures.emplace_back(pool.enqueue(process_file, library_file));
   }
 
-  // Process header files
   for (const auto& header_file : header_files) {
-    try {
-      Logger::debug("Processing header file: " + header_file);
-
-      DependencyPackage dep = DependencyPackage::fromRawFile(header_file, build_info_->package_mgr_);
-      if (dep.isValid()) {
-        record.addDependency(dep);
-        Logger::debug("  Added: " + dep.getPackageName() + " v" +
-                      dep.getVersion());
-      } else {
-        Logger::debug("  Skipped invalid dependency: " + header_file);
-      }
-    } catch (const std::exception& e) {
-      Logger::warn("Error processing " + header_file + ": " + e.what());
-    }
+    futures.emplace_back(pool.enqueue(process_file, header_file));
   }
 
-  // Process executables
   for (const auto& executable : executables) {
-    try {
-      Logger::debug("Processing executable: " + executable);
+    futures.emplace_back(pool.enqueue(process_file, executable));
+  }
 
-      DependencyPackage dep = DependencyPackage::fromRawFile(executable, build_info_->package_mgr_);
-      if (dep.isValid()) {
-        record.addDependency(dep);
-        Logger::debug("  Added: " + dep.getPackageName() + " v" +
-                      dep.getVersion());
-      } else {
-        Logger::debug("  Skipped invalid dependency: " + executable);
-      }
-    } catch (const std::exception& e) {
-      Logger::warn("Error processing " + executable + ": " + e.what());
-    }
+  // Wait for all tasks to complete
+  for (auto& future : futures) {
+    future.get();
   }
 
   // Detect build artifacts from strace output
   detectBuildArtifacts(strace_output, record);
+
+  auto end_time = std::chrono::high_resolution_clock::now();
+  auto build_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            build_end_time - start_time)
+                            .count();
+  auto total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            end_time - start_time)
+                            .count();
+
+  Logger::info("Build execution time: " + std::to_string(build_duration) +
+               " ms");
+  Logger::info("Total tracking time: " + std::to_string(total_duration) +
+               " ms");
 }
 
 void Tracker::detectBuildArtifacts(const std::string& strace_output,

@@ -4,7 +4,7 @@ metadata:
   distribution: Ubuntu 25.04
   build_cmd: make
   build_path: /home/sprooc/reprobuild
-  build_timestamp: 2026-01-18T09:26:38+00:00
+  build_timestamp: 2026-01-21T09:33:45+00:00
   hostname: sprooc
   locale: "LANG=en_US.UTF-8\nLANGUAGE=\nLC_CTYPE=\"en_US.UTF-8\"\nLC_NUMERIC=\"en_US.UTF-8\"\nLC_TIME=\"en_US.UTF-8\"\nLC_COLLATE=\"en_US.UTF-8\"\nLC_MONETARY=\"en_US.UTF-8\"\nLC_MESSAGES=\"en_US.UTF-8\"\nLC_PAPER=\"en_US.UTF-8\"\nLC_NAME=\"en_US.UTF-8\"\nLC_ADDRESS=\"en_US.UTF-8\"\nLC_TELEPHONE=\"en_US.UTF-8\"\nLC_MEASUREMENT=\"en_US.UTF-8\"\nLC_IDENTIFICATION=\"en_US.UTF-8\"\nLC_ALL="
   umask: 0002
@@ -106,9 +106,9 @@ dependencies:
     hash: e489f7e3ee064c1707520e6aaf887a6367363aed70308b9845802070472b723b
     origin: apt
   - name: libgcc-14-dev
-    path: /usr/lib/gcc/x86_64-linux-gnu/14/include/stdint.h
+    path: /usr/lib/gcc/x86_64-linux-gnu/14/include/stddef.h
     version: 14.2.0-19ubuntu2
-    hash: 86a7914ab7d6a18465a6fb9a7b54f945cad604fdbf3ca0d10e4e0254e0037911
+    hash: 0f71abc7b6288b1141058f3b53dfc06fbecd9c62314c165ccb238b3c5559c58d
     origin: apt
   - name: libgcc-s1
     path: /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
@@ -181,9 +181,9 @@ dependencies:
     hash: 9ed809961bcc2c1992b397949b374c4673a23102040bfc44526b41f8b056d42c
     origin: apt
   - name: libldap2
-    path: /usr/lib/x86_64-linux-gnu/libldap.so.2.0.200
+    path: /usr/lib/x86_64-linux-gnu/liblber.so.2.0.200
     version: 2.6.9+dfsg-2ubuntu1
-    hash: 121e32a635012a9c3c8b26be914aa62b915351592c834b6584c3963d93c654b3
+    hash: 4b63385ee56de035ec8c55a1430d33c9edb74737a39a5a087954c33ab8152adf
     origin: apt
   - name: liblz4-1
     path: /usr/lib/x86_64-linux-gnu/liblz4.so.1.10.0
@@ -343,5 +343,5 @@ artifacts:
     hash: ec0eb63fb43721b7c657608945eff5a7f10a1d2b8d4219a03ae58a34b8150353
     type: shared_library
   - path: build/reprobuild
-    hash: 3aa446e0d9a3b1f15c35f38378ae07ee5cc916506b543bea5833add1dfb91bd4
+    hash: 7c272c800c83d3edb166909f50d7de632847257b9616bf5599125f6069c4052c
     type: executable
