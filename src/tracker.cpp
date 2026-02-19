@@ -1,7 +1,11 @@
 #include "tracker.h"
 
+#include <signal.h>
 #include <unistd.h>
 
+#include <cctype>
+#include <cerrno>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -10,14 +14,30 @@
 #include <regex>
 #include <sstream>
 #include <thread>
+#include <unordered_map>
 
+#include "bpftrace_script.h"
 #include "interceptor_embedded.h"
 #include "logger.h"
 #include "thread_pool.h"
 #include "utils.h"
 
+namespace {
+// Bpftrace configuration
+const char* const kPidPlaceholder = "$pid = *;";
+const char* const kBpftraceCommand = "sudo bpftrace0.24";
+
+// Timing constants (milliseconds)
+const int kBpftraceAttachCheckInterval = 100;
+const int kBpftraceProcessingDelay = 200;
+const int kBpftraceFlushDelay = 500;
+const int kBpftraceAttachTimeout = 10000;  // 10 seconds
+
+}  // namespace
+
 Tracker::Tracker(std::shared_ptr<BuildInfo> build_info)
     : build_info_(build_info) {
+  // Initialize default ignore patterns for system directories
   ignore_patterns_.push_back("/tmp/");
   ignore_patterns_.push_back("/proc/");
   ignore_patterns_.push_back("/sys/");
@@ -28,129 +48,337 @@ void Tracker::addIgnorePattern(const std::string& pattern) {
   ignore_patterns_.push_back(pattern);
 }
 
-std::string Tracker::executeWithStrace(const std::string& command) {
-  std::string strace_log =
-      build_info_->log_dir_ + "/strace_" + std::to_string(getpid()) + ".log";
-  std::string strace_cmd =
-      "strace -e trace=openat,execve,execveat,creat -y -f -q -o " + strace_log +
-      " " + command;
+std::string Tracker::executeWithBpftrace(const std::string& command) {
+  const pid_t current_pid = getpid();
+  const std::string pid_str = std::to_string(current_pid);
 
-  Logger::debug("Executing: " + strace_cmd);
+  // Generate file paths for bpftrace artifacts
+  const std::string bpftrace_script =
+      build_info_->log_dir_ + "/script_" + pid_str + ".bt";
+  const std::string bpftrace_log =
+      build_info_->log_dir_ + "/bpftrace_" + pid_str + ".log";
+  const std::string bpftrace_stderr_log =
+      build_info_->log_dir_ + "/bpftrace_stderr_" + pid_str + ".log";
+  const std::string bpftrace_pidfile =
+      build_info_->log_dir_ + "/bpftrace_pid_" + pid_str + ".pid";
 
-  // Execute the command, allowing original command output to go to stdout
-  int exit_code = std::system(strace_cmd.c_str());
+  // Prepare bpftrace script with current PID
+  std::string script_content = BpftraceScript::SCRIPT_TEMPLATE;
+  const std::string pid_replacement = "$pid = " + pid_str + ";";
+
+  const size_t placeholder_pos = script_content.find(kPidPlaceholder);
+  if (placeholder_pos != std::string::npos) {
+    script_content.replace(placeholder_pos, strlen(kPidPlaceholder),
+                           pid_replacement);
+  } else {
+    Logger::warn("Could not find PID placeholder in bpftrace script");
+  }
+
+  // Write the modified script to temporary file
+  {
+    std::ofstream script_file(bpftrace_script);
+    if (!script_file.is_open()) {
+      Logger::error("Failed to create temporary bpftrace script: " +
+                    bpftrace_script);
+      return "";
+    }
+    script_file << script_content;
+  }  // File auto-closed by RAII
+
+  // Start bpftrace in background and capture its PID
+  const std::string bpftrace_cmd = std::string(kBpftraceCommand) + " " +
+                                   bpftrace_script + " > " + bpftrace_log +
+                                   " 2> " + bpftrace_stderr_log +
+                                   " & echo $! > " + bpftrace_pidfile;
+
+  Logger::debug("Starting bpftrace: " + bpftrace_cmd);
+  const int bpftrace_ret = std::system(bpftrace_cmd.c_str());
+  if (bpftrace_ret != 0) {
+    Logger::warn("Failed to start bpftrace (exit code: " +
+                 std::to_string(bpftrace_ret) + ")");
+  }
+
+  // Wait for bpftrace to attach by monitoring stderr output
+  bool attached = false;
+  const auto start_wait = std::chrono::steady_clock::now();
+  const auto timeout = std::chrono::milliseconds(kBpftraceAttachTimeout);
+
+  while (!attached) {
+    std::ifstream stderr_file(bpftrace_stderr_log);
+    if (stderr_file.is_open()) {
+      std::string line;
+      while (std::getline(stderr_file, line)) {
+        if (line.find("Attaching") != std::string::npos) {
+          Logger::debug("Bpftrace attached: " + line);
+          attached = true;
+          break;
+        }
+      }
+    }
+
+    if (!attached) {
+      const auto elapsed = std::chrono::steady_clock::now() - start_wait;
+      if (elapsed > timeout) {
+        Logger::warn("Timeout waiting for bpftrace to attach");
+        break;
+      }
+      std::this_thread::sleep_for(
+          std::chrono::milliseconds(kBpftraceAttachCheckInterval));
+    }
+  }
+
+  // Execute the actual build command
+  Logger::debug("Executing: " + command);
+  const int exit_code = std::system(command.c_str());
   if (exit_code != 0) {
     Logger::warn("Command exited with code: " + std::to_string(exit_code));
   }
 
-  // Read strace output from the log file
-  std::string strace_output;
-  std::ifstream strace_file(strace_log);
-  if (strace_file.is_open()) {
-    std::string line;
-    while (std::getline(strace_file, line)) {
-      strace_output += line + "\n";
-    }
-    strace_file.close();
+  // Give bpftrace time to finish processing
+  std::this_thread::sleep_for(
+      std::chrono::milliseconds(kBpftraceProcessingDelay));
 
-    // // Clean up the temporary log file
-    // std::filesystem::remove(strace_log);
-  } else {
-    Logger::warn("Failed to read strace log file: " + strace_log);
+  // Stop bpftrace by reading its PID and sending SIGINT
+  {
+    std::ifstream pidfile(bpftrace_pidfile);
+    if (pidfile.is_open()) {
+      std::string bpftrace_pid_str;
+      std::getline(pidfile, bpftrace_pid_str);
+
+      if (!bpftrace_pid_str.empty()) {
+        try {
+          const pid_t bpftrace_pid = std::stoi(bpftrace_pid_str);
+          Logger::debug("Stopping bpftrace PID " + bpftrace_pid_str);
+
+          // Use kill() syscall directly to avoid creating traced processes
+          if (kill(bpftrace_pid, SIGINT) == 0) {
+            Logger::debug("Successfully sent SIGINT to bpftrace");
+          } else {
+            Logger::warn("Failed to send SIGINT to bpftrace: " +
+                         std::string(std::strerror(errno)));
+          }
+
+          // Clean up PID file
+          std::filesystem::remove(bpftrace_pidfile);
+        } catch (const std::exception& e) {
+          Logger::warn("Failed to parse bpftrace PID: " +
+                       std::string(e.what()));
+        }
+      }
+    } else {
+      Logger::warn("Failed to read bpftrace PID file: " + bpftrace_pidfile);
+    }
+  }  // File auto-closed by RAII
+
+  // Wait for bpftrace to flush output
+  std::this_thread::sleep_for(std::chrono::milliseconds(kBpftraceFlushDelay));
+
+  // Read bpftrace output from log file
+  std::string raw_output;
+  {
+    std::ifstream bpftrace_file(bpftrace_log);
+    if (bpftrace_file.is_open()) {
+      std::string line;
+      while (std::getline(bpftrace_file, line)) {
+        raw_output += line + "\n";
+      }
+      // Note: Temporary files cleanup is disabled for debugging
+      // std::filesystem::remove(bpftrace_script);
+      // std::filesystem::remove(bpftrace_log);
+    } else {
+      Logger::warn("Failed to read bpftrace log file: " + bpftrace_log);
+    }
   }
 
-  return strace_output;
+  return processBpftraceOutput(raw_output);
 }
 
-std::set<std::string> Tracker::parseLibFiles(const std::string& strace_output) {
+std::string Tracker::processBpftraceOutput(const std::string& raw_output) {
+  // Convert bpftrace raw output to c1 format
+  // Input:  PID|content|PID|content|...
+  // Output: ID PID: \n content \n
+  std::unordered_map<int, std::string> pid_streams;
+
+  size_t pos = 0;
+  while (pos < raw_output.size()) {
+    // Skip leading whitespace
+    while (pos < raw_output.size() && std::isspace(raw_output[pos])) {
+      ++pos;
+    }
+
+    // Parse PID (sequence of digits)
+    const size_t pid_start = pos;
+    while (pos < raw_output.size() && std::isdigit(raw_output[pos])) {
+      ++pos;
+    }
+
+    if (pos >= raw_output.size() || raw_output[pos] != '|') {
+      break;  // Invalid format or end of data
+    }
+
+    const int pid = std::stoi(raw_output.substr(pid_start, pos - pid_start));
+    ++pos;  // Skip delimiter '|'
+
+    // Parse content until next delimiter
+    const size_t content_start = pos;
+    while (pos < raw_output.size() && raw_output[pos] != '|') {
+      ++pos;
+    }
+
+    if (pos >= raw_output.size()) {
+      break;  // Missing closing delimiter
+    }
+
+    const std::string content =
+        raw_output.substr(content_start, pos - content_start);
+    pid_streams[pid] += content;
+
+    ++pos;  // Skip delimiter '|'
+  }
+
+  // Format output in c1 format: group by PID
+  std::ostringstream result;
+  for (const auto& [pid, content] : pid_streams) {
+    result << "ID " << pid << ": \n" << content << "\n";
+  }
+
+  return result.str();
+}
+
+std::set<std::string> Tracker::parseLibFiles(
+    const std::string& bpftrace_output) {
   std::set<std::string> library_files;
-  std::istringstream iss(strace_output);
+  std::istringstream input_stream(bpftrace_output);
   std::string line;
 
-  // Match both .so (dynamic) and .a (static) libraries
-  std::regex openat_regex(R"(openat\([^,]+,\s*\"([^\"]*\.(?:so|a)[^\"]*)\")");
-  std::smatch match;
-
-  while (std::getline(iss, line)) {
-    if (std::regex_search(line, match, openat_regex)) {
-      std::string filepath = match[1].str();
-
-      if (!std::filesystem::exists(filepath) || shouldIgnoreLib(filepath)) {
-        continue;
-      }
-
-      // Determine library type for better logging
-      bool is_static = Utils::endsWith(filepath, ".a");
-      bool is_dynamic = Utils::isSharedLib(filepath);
-
-      if (!is_static && !is_dynamic) {
-        continue;  // Not a recognized library type
-      }
-
-      if (is_static) {
-        Logger::debug("Found static library: " + filepath);
-      } else if (is_dynamic) {
-        Logger::debug("Found shared library: " + filepath);
-      }
-
-      library_files.insert(filepath);
+  while (std::getline(input_stream, line)) {
+    // Skip ID header lines and empty lines
+    if (line.empty() || Utils::startsWith(line, "ID ")) {
+      continue;
     }
+
+    // Match openat syscall lines: "openat /path/to/file flags"
+    if (!Utils::startsWith(line, "openat ")) {
+      continue;
+    }
+
+    std::istringstream line_stream(line);
+    std::string syscall, filepath;
+    line_stream >> syscall >> filepath;
+
+    if (filepath.empty()) {
+      continue;
+    }
+
+    // Check if file is a library (.so or .a)
+    const bool is_static_lib = Utils::endsWith(filepath, ".a");
+    const bool is_dynamic_lib = Utils::isSharedLib(filepath);
+
+    if (!is_static_lib && !is_dynamic_lib) {
+      continue;
+    }
+
+    if (!std::filesystem::exists(filepath) || shouldIgnoreLib(filepath)) {
+      continue;
+    }
+
+    const char* lib_type = is_static_lib ? "static" : "shared";
+    Logger::debug(std::string("Found ") + lib_type + " library: " + filepath);
+    library_files.insert(filepath);
   }
 
   return library_files;
 }
 
 std::set<std::string> Tracker::parseHeaderFiles(
-    const std::string& strace_output) {
+    const std::string& bpftrace_output) {
+  // Recognized header file extensions
+  static const std::vector<std::string> kHeaderExtensions = {
+      ".h", ".hpp", ".hxx", ".hh", ".H"};
+
   std::set<std::string> header_files;
-  std::istringstream iss(strace_output);
+  std::istringstream input_stream(bpftrace_output);
   std::string line;
 
-  // Match header files (.h, .hpp, .hxx, .hh, .H)
-  std::regex openat_regex(
-      R"(openat\([^,]+,\s*\"([^\"]*\.(?:h|hpp|hxx|hh|H)[^\"]*)\")");
-  std::smatch match;
-
-  while (std::getline(iss, line)) {
-    if (std::regex_search(line, match, openat_regex)) {
-      std::string filepath = match[1].str();
-
-      if (!std::filesystem::exists(filepath) || shouldIgnoreHeader(filepath)) {
-        continue;
-      }
-
-      Logger::debug("Found header file: " + filepath);
-      header_files.insert(filepath);
+  while (std::getline(input_stream, line)) {
+    // Skip ID header lines and empty lines
+    if (line.empty() || Utils::startsWith(line, "ID ")) {
+      continue;
     }
+
+    // Match openat syscall lines: "openat /path/to/file flags"
+    if (!Utils::startsWith(line, "openat ")) {
+      continue;
+    }
+
+    std::istringstream line_stream(line);
+    std::string syscall, filepath;
+    line_stream >> syscall >> filepath;
+
+    if (filepath.empty()) {
+      continue;
+    }
+
+    // Check if file has a header extension
+    bool is_header_file = false;
+    for (const auto& ext : kHeaderExtensions) {
+      if (Utils::endsWith(filepath, ext)) {
+        is_header_file = true;
+        break;
+      }
+    }
+
+    if (!is_header_file) {
+      continue;
+    }
+
+    if (!std::filesystem::exists(filepath) || shouldIgnoreHeader(filepath)) {
+      continue;
+    }
+
+    Logger::debug("Found header file: " + filepath);
+    header_files.insert(filepath);
   }
 
   return header_files;
 }
 
 std::set<std::string> Tracker::parseExecutables(
-    const std::string& strace_output) {
+    const std::string& bpftrace_output) {
   std::set<std::string> executables;
-  std::istringstream iss(strace_output);
+  std::istringstream input_stream(bpftrace_output);
   std::string line;
 
-  // Match execve and execveat syscalls in strace format: PID  execve("path",
-  // ...)
-  std::regex exec_regex(R"(\d+\s+(?:execve|execveat)\(\"([^\"]+)\")");
-  std::smatch match;
-
-  while (std::getline(iss, line)) {
-    if (std::regex_search(line, match, exec_regex)) {
-      std::string exec_path = match[1].str();
-
-      // Skip if path doesn't exist or should be ignored
-      if (!std::filesystem::exists(exec_path) ||
-          shouldIgnoreExecutable(exec_path)) {
-        continue;
-      }
-
-      Logger::debug("Found executable: " + exec_path);
-      executables.insert(exec_path);
+  while (std::getline(input_stream, line)) {
+    // Skip ID header lines and empty lines
+    if (line.empty() || Utils::startsWith(line, "ID ")) {
+      continue;
     }
+
+    // Match execve/execveat syscalls: "execve /path/to/executable arg1 ..."
+    const bool is_execve = Utils::startsWith(line, "execve ");
+    const bool is_execveat = Utils::startsWith(line, "execveat ");
+
+    if (!is_execve && !is_execveat) {
+      continue;
+    }
+
+    std::istringstream line_stream(line);
+    std::string syscall, exec_path;
+    line_stream >> syscall >> exec_path;
+
+    if (exec_path.empty()) {
+      continue;
+    }
+
+    // Skip if path doesn't exist or should be ignored
+    if (!std::filesystem::exists(exec_path) ||
+        shouldIgnoreExecutable(exec_path)) {
+      continue;
+    }
+
+    Logger::debug("Found executable: " + exec_path);
+    executables.insert(exec_path);
   }
 
   return executables;
@@ -259,18 +487,18 @@ bool Tracker::shouldIgnoreArtifact(const std::string& filepath) const {
 void Tracker::trackBuild() {
   Logger::info("Build command: " + build_info_->build_command_);
   auto start_time = std::chrono::high_resolution_clock::now();
-  std::string strace_output;
+  std::string bpftrace_output;
   try {
-    strace_output = executeWithStrace(build_info_->build_command_);
+    bpftrace_output = executeWithBpftrace(build_info_->build_command_);
   } catch (const std::exception& e) {
     Logger::error("Error executing build command: " + std::string(e.what()));
     return;
   }
   auto build_end_time = std::chrono::high_resolution_clock::now();
 
-  auto library_files = parseLibFiles(strace_output);
-  auto header_files = parseHeaderFiles(strace_output);
-  auto executables = parseExecutables(strace_output);
+  auto library_files = parseLibFiles(bpftrace_output);
+  auto header_files = parseHeaderFiles(bpftrace_output);
+  auto executables = parseExecutables(bpftrace_output);
   Logger::info("Found " + std::to_string(library_files.size()) + " libraries");
   Logger::info("Found " + std::to_string(header_files.size()) +
                " header files");
@@ -323,8 +551,8 @@ void Tracker::trackBuild() {
     future.get();
   }
 
-  // Detect build artifacts from strace output
-  detectBuildArtifacts(strace_output, record);
+  // Detect build artifacts from bpftrace output
+  detectBuildArtifacts(bpftrace_output, record);
 
   auto end_time = std::chrono::high_resolution_clock::now();
   auto build_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -340,43 +568,39 @@ void Tracker::trackBuild() {
                " ms");
 }
 
-void Tracker::detectBuildArtifacts(const std::string& strace_output,
+void Tracker::detectBuildArtifacts(const std::string& bpftrace_output,
                                    BuildRecord& record) {
-  Logger::debug("Detecting build artifacts from strace output");
+  Logger::debug("Detecting build artifacts from bpftrace output");
 
-  std::istringstream iss(strace_output);
+  std::istringstream input_stream(bpftrace_output);
   std::string line;
   std::set<std::string> created_files;
 
-  // With -y option, AT_FDCWD and other paths are resolved, so we can match
-  // paths directly Pattern matches: PID syscall(AT_FDCWD</path/to/dir>,
-  // "filename", ..., O_CREAT)
-  std::regex create_regex(
-      R"(\d+\s+(?:openat|creat)\([^,]*<([^>]+)>,\s*\"([^\"]+)\"[^)]*O_CREAT)");
-  // Also match simple creat calls: PID creat("filepath", ...)
-  std::regex creat_regex(R"(\d+\s+creat\(\"([^\"]+)\")");
-  // Match openat with absolute paths directly: openat(..., "/absolute/path",
-  // ..., O_CREAT)
-  std::regex absolute_create_regex(
-      R"(\d+\s+openat\([^,]*,\s*\"(/[^\"]+)\"[^)]*O_CREAT)");
-  std::smatch match;
+  while (std::getline(input_stream, line)) {
+    // Skip ID header lines and empty lines
+    if (line.empty() || Utils::startsWith(line, "ID ")) {
+      continue;
+    }
 
-  while (std::getline(iss, line)) {
     std::string filepath;
 
-    // Check for openat with AT_FDCWD resolved by -y option
-    if (std::regex_search(line, match, create_regex)) {
-      std::string base_dir = match[1].str();
-      std::string filename = match[2].str();
-      filepath = base_dir + "/" + filename;
+    // Match creat syscall: "creat /path/to/file"
+    if (Utils::startsWith(line, "creat ")) {
+      std::istringstream line_stream(line);
+      std::string syscall;
+      line_stream >> syscall >> filepath;
     }
-    // Check for openat with absolute paths
-    else if (std::regex_search(line, match, absolute_create_regex)) {
-      filepath = match[1].str();
-    }
-    // Check for simple creat syscall
-    else if (std::regex_search(line, match, creat_regex)) {
-      filepath = match[1].str();
+    // Match openat with O_CREAT flag: "openat /path/to/file flags"
+    else if (Utils::startsWith(line, "openat ")) {
+      std::istringstream line_stream(line);
+      std::string syscall, path;
+      int flags;
+      line_stream >> syscall >> path >> flags;
+
+      // Check if O_CREAT flag is set (64 = 0100 octal)
+      if ((flags & 64) != 0) {
+        filepath = path;
+      }
     }
 
     if (!filepath.empty() && std::filesystem::exists(filepath)) {
@@ -385,38 +609,43 @@ void Tracker::detectBuildArtifacts(const std::string& strace_output,
     }
   }
 
-  // Process created files and check if they are executables or shared libraries
+  // Process created files and identify build artifacts
+  processCreatedFiles(created_files, record);
+}
+
+void Tracker::processCreatedFiles(const std::set<std::string>& created_files,
+                                  BuildRecord& record) {
   for (const auto& filepath : created_files) {
     try {
-      if (!shouldIgnoreArtifact(filepath)) {
-        bool is_executable = false;
-        bool is_shared_lib = false;
-
-        // Check file permissions for executables
-        auto perms = std::filesystem::status(filepath).permissions();
-        if ((perms & std::filesystem::perms::owner_exec) !=
-            std::filesystem::perms::none) {
-          is_executable = true;
-        }
-
-        // Check extension for shared libraries
-        is_shared_lib = Utils::isSharedLib(filepath);
-
-        Logger::debug("Created file " + filepath +
-                      (is_executable ? " is executable." : "") +
-                      (is_shared_lib ? " is shared library." : ""));
-
-        if (is_executable || is_shared_lib) {
-          std::string hash = Utils::calculateFileHash(filepath);
-          std::string display_path = makeRelativePath(filepath, ".");
-          std::string type = is_shared_lib ? "shared_library" : "executable";
-
-          BuildArtifact artifact(display_path, hash, type);
-          record.addArtifact(artifact);
-
-          Logger::debug("Added artifact: " + display_path + " (" + type + ")");
-        }
+      if (shouldIgnoreArtifact(filepath)) {
+        continue;
       }
+
+      // Check file type
+      const auto perms = std::filesystem::status(filepath).permissions();
+      const bool is_executable = (perms & std::filesystem::perms::owner_exec) !=
+                                 std::filesystem::perms::none;
+      const bool is_shared_lib = Utils::isSharedLib(filepath);
+
+      if (!is_executable && !is_shared_lib) {
+        continue;
+      }
+
+      Logger::debug("Created file " + filepath +
+                    (is_executable ? " is executable." : "") +
+                    (is_shared_lib ? " is shared library." : ""));
+
+      // Add artifact to build record
+      const std::string hash = Utils::calculateFileHash(filepath);
+      const std::string display_path = makeRelativePath(filepath, ".");
+      const std::string artifact_type =
+          is_shared_lib ? "shared_library" : "executable";
+
+      BuildArtifact artifact(display_path, hash, artifact_type);
+      record.addArtifact(artifact);
+
+      Logger::debug("Added artifact: " + display_path + " (" + artifact_type +
+                    ")");
     } catch (const std::exception& e) {
       Logger::warn("Error processing created file " + filepath + ": " +
                    e.what());

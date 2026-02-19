@@ -72,8 +72,15 @@ deps:
 	@sudo apt update
 	@sudo apt install -y libgtest-dev libgmock-dev libyaml-cpp-dev
 
+bpftrace:
+	@sudo ./bpftrace tools/script.bt
+
+install:
+	@wget -P /tmp https://github.com/bpftrace/bpftrace/releases/download/v0.24.2/bpftrace
+	@sudo mv /tmp/bpftrace /usr/bin/bpftrace0.24
+
 # Show help
-.PHONY: help
+.PHONY: help bpftrace
 help:
 	@echo "Available targets:"
 	@echo "  all           - Configure and build (default)"

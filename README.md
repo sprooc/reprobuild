@@ -12,7 +12,7 @@ make ctest
 ## Usage
 
 ### Basic Usage
-
+Please run `make install` to install new version of bpftrace to `/usr/bin/bpftrace0.24` before using reprobuild.
 ```bash
 # Track a simple build command
 ./build/reprobuild make

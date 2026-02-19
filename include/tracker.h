@@ -22,12 +22,15 @@ class Tracker {
   std::vector<std::string> ignore_patterns_;
   std::shared_ptr<BuildInfo> build_info_;
 
-  std::string executeWithStrace(const std::string& command);
-  std::set<std::string> parseLibFiles(const std::string& strace_output);
-  std::set<std::string> parseHeaderFiles(const std::string& strace_output);
-  std::set<std::string> parseExecutables(const std::string& strace_output);
-  void detectBuildArtifacts(const std::string& strace_output,
+  std::string executeWithBpftrace(const std::string& command);
+  std::string processBpftraceOutput(const std::string& raw_output);
+  std::set<std::string> parseLibFiles(const std::string& bpftrace_output);
+  std::set<std::string> parseHeaderFiles(const std::string& bpftrace_output);
+  std::set<std::string> parseExecutables(const std::string& bpftrace_output);
+  void detectBuildArtifacts(const std::string& bpftrace_output,
                             BuildRecord& record);
+  void processCreatedFiles(const std::set<std::string>& created_files,
+                           BuildRecord& record);
   std::string makeRelativePath(const std::string& filepath,
                                const std::string& base_dir);
   bool shouldIgnoreFile(const std::string& filepath) const;
