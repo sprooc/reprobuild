@@ -28,6 +28,9 @@ find_package(GTest REQUIRED)
 # Find yaml-cpp
 find_package(yaml-cpp REQUIRED)
 
+# Find OpenSSL for HMAC-SHA1 signature in MinIO uploader
+find_package(OpenSSL REQUIRED)
+
 # Collect source files (excluding main executables for library)
 file(GLOB_RECURSE LIB_SOURCES "src/*.cpp")
 list(REMOVE_ITEM LIB_SOURCES 
@@ -59,7 +62,7 @@ add_custom_target(generate_embedded_interceptor
 
 # Create library for shared code
 add_library(reprobuild_lib ${LIB_SOURCES} ${HEADERS})
-target_link_libraries(reprobuild_lib yaml-cpp)
+target_link_libraries(reprobuild_lib yaml-cpp OpenSSL::SSL OpenSSL::Crypto)
 # Make sure the embedded header is generated before building the main library
 add_dependencies(reprobuild_lib generate_embedded_interceptor)
 

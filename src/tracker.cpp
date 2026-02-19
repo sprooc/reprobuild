@@ -108,7 +108,7 @@ std::string Tracker::executeWithBpftrace(const std::string& command) {
     if (stderr_file.is_open()) {
       std::string line;
       while (std::getline(stderr_file, line)) {
-        if (line.find("Attaching") != std::string::npos) {
+        if (line.find("Attached") != std::string::npos) {
           Logger::debug("Bpftrace attached: " + line);
           attached = true;
           break;

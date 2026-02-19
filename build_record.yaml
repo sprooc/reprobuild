@@ -4,7 +4,7 @@ metadata:
   distribution: Ubuntu 25.04
   build_cmd: make
   build_path: /home/sprooc/reprobuild
-  build_timestamp: 2026-02-19T05:00:38+00:00
+  build_timestamp: 2026-02-19T10:32:55+00:00
   hostname: sprooc
   locale: "LANG=en_US.UTF-8\nLANGUAGE=\nLC_CTYPE=\"en_US.UTF-8\"\nLC_NUMERIC=\"en_US.UTF-8\"\nLC_TIME=\"en_US.UTF-8\"\nLC_COLLATE=\"en_US.UTF-8\"\nLC_MONETARY=\"en_US.UTF-8\"\nLC_MESSAGES=\"en_US.UTF-8\"\nLC_PAPER=\"en_US.UTF-8\"\nLC_NAME=\"en_US.UTF-8\"\nLC_ADDRESS=\"en_US.UTF-8\"\nLC_TELEPHONE=\"en_US.UTF-8\"\nLC_MEASUREMENT=\"en_US.UTF-8\"\nLC_IDENTIFICATION=\"en_US.UTF-8\"\nLC_ALL="
   umask: 0002
@@ -61,9 +61,9 @@ dependencies:
     hash: 45586bc9c186c39303e6bd2b177eb48dd2456332f3b6425214d1d9757053c5f7
     origin: apt
   - name: libbrotli1
-    path: /usr/lib/x86_64-linux-gnu/libbrotlidec.so.1.1.0
+    path: /usr/lib/x86_64-linux-gnu/libbrotlicommon.so.1.1.0
     version: 1.1.0-2build4
-    hash: f96b36f0c4ecc9299705ff10409c8dd432d4d670e1d27859c2560c3a5e851d5b
+    hash: b3fd1c13c3cbf70cfceb42752c028c4cad663311fb7f74bf8dde6c2e640a66ec
     origin: apt
   - name: libbz2-1.0
     path: /usr/lib/x86_64-linux-gnu/libbz2.so.1.0.4
@@ -106,9 +106,9 @@ dependencies:
     hash: e489f7e3ee064c1707520e6aaf887a6367363aed70308b9845802070472b723b
     origin: apt
   - name: libgcc-14-dev
-    path: /usr/lib/gcc/x86_64-linux-gnu/14/include/stdint.h
+    path: /usr/lib/gcc/x86_64-linux-gnu/14/include/syslimits.h
     version: 14.2.0-19ubuntu2
-    hash: 86a7914ab7d6a18465a6fb9a7b54f945cad604fdbf3ca0d10e4e0254e0037911
+    hash: 22dd0ab81baadd5a8d455b445855f341d419c7b0267beca235de00b7ec78e529
     origin: apt
   - name: libgcc-s1
     path: /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
@@ -131,9 +131,9 @@ dependencies:
     hash: e2b4c6b31556c3f6a48af9258b3b56d38b54aa41a715451769a6397f5ecd0fc5
     origin: apt
   - name: libgtest-dev
-    path: /usr/include/gtest/internal/gtest-type-util.h
+    path: /usr/include/gtest/internal/gtest-string.h
     version: 1.16.0-1
-    hash: 94336b1703807db6d9d2b729b5a30cf53016fd236b14774af118467d27f94ad8
+    hash: 0cc08c746bceb2b101c61ffbc905c598eb62fee3c262c4585c21b10d8a3e6508
     origin: apt
   - name: libhogweed6t64
     path: /usr/lib/x86_64-linux-gnu/libhogweed.so.6.10
@@ -225,6 +225,11 @@ dependencies:
     version: 10.45-1ubuntu0.1
     hash: be7d64d79e777990ee199dc3ee14657044d43e63f45cb2c49aa04a3352b4242b
     origin: apt
+  - name: libpkgconf3
+    path: /usr/lib/x86_64-linux-gnu/libpkgconf.so.3.0.0
+    version: 1.8.1-4
+    hash: b0eb10d6ce22f8172fd13915a560a3702a6535dfd3a4fa28cfc4df4c478375cb
+    origin: apt
   - name: libpsl5t64
     path: /usr/lib/x86_64-linux-gnu/libpsl.so.5.3.4
     version: 0.21.2-1.1build1
@@ -260,15 +265,20 @@ dependencies:
     version: 1.11.1-1
     hash: 5d7ca48c01e17f877024111d0fbf7c7a648fe1b1d7838b5e45a96c8ff3341710
     origin: apt
+  - name: libssl-dev
+    path: /usr/include/x86_64-linux-gnu/openssl/configuration.h
+    version: 3.4.1-1ubuntu4
+    hash: 3c68d673bfdc461015b5e09bd644644623d25f688433a0e513adaec5d20fcfbd
+    origin: apt
   - name: libssl3t64
     path: /usr/lib/x86_64-linux-gnu/libssl.so.3
     version: 3.4.1-1ubuntu4
     hash: 1ddc45fbe9ca5d300922b8a7cd6c05208d435fcf517ccc1e9e9c0d72e8a57ce3
     origin: apt
   - name: libstdc++-14-dev
-    path: /usr/include/x86_64-linux-gnu/c++/14/bits/os_defines.h
+    path: /usr/include/x86_64-linux-gnu/c++/14/bits/time_members.h
     version: 14.2.0-19ubuntu2
-    hash: 733f578676f6b7689cb4113c8c38deda7cd7e8890b5d5b22ab2168bbf0a0a264
+    hash: 667060c46b396fadf2cc2927bf7c2a419785cc5d901223408203d261f068cefc
     origin: apt
   - name: libstdc++6
     path: /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.34
@@ -301,9 +311,9 @@ dependencies:
     hash: bf9ac2b806e8d489bb8de72c270063fb21d58d457bececbbd22d60b1a5d0f71d
     origin: apt
   - name: libyaml-cpp-dev
-    path: /usr/include/yaml-cpp/yaml.h
+    path: /usr/include/yaml-cpp/traits.h
     version: 0.8.0+dfsg-7
-    hash: 946643e99e2f865887852f838a66130c54ed770645a73f2c5f8b71b9bb2b1488
+    hash: 6548f3725275c1659652164a161ab70d96cf8cc0ee544053ef2a15e0314db826
     origin: apt
   - name: libyaml-cpp0.8
     path: /usr/lib/x86_64-linux-gnu/libyaml-cpp.so.0.8.0
@@ -325,6 +335,11 @@ dependencies:
     version: 4.4.1-1
     hash: caee5a3413df4f67064bd4b16428e09bbcbdeaa47b94bec9482b6abd02fe6a61
     origin: apt
+  - name: pkgconf
+    path: /usr/bin/pkgconf
+    version: 1.8.1-4
+    hash: 11f0306a709f19fbfac8d6e7c023d49bad2f57548c27213c30ebe702a60481be
+    origin: apt
   - name: python3-minimal
     path: /usr/bin/python3.13
     version: 3.13.3-1
@@ -343,5 +358,5 @@ artifacts:
     hash: ec0eb63fb43721b7c657608945eff5a7f10a1d2b8d4219a03ae58a34b8150353
     type: shared_library
   - path: build/reprobuild
-    hash: 48c5bc241267bff1f3a6ea6cc85c1fb6a66f58e305190d248369a3d6cfa2124d
+    hash: 6c60eddff2e7dd65e5996cc13249bb5d27c134ce8ac4cb4b6cd6a35ba2972ce1
     type: executable

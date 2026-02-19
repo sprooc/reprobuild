@@ -11,23 +11,29 @@
 #include "postprocessor.h"
 #include "preprocessor.h"
 #include "tracker.h"
+#include "uploader.h"
 #include "utils.h"
 
 void printUsage(const char* program_name) {
   std::cerr << (std::string("Usage: ") + program_name +
-               " [OPTIONS] <command...>") << std::endl;
+                " [OPTIONS] <command...>")
+            << std::endl;
   std::cerr << "Options:" << std::endl;
-  std::cerr <<
-      "  -o, --output <file>    Output file for build record (default: "
-      "build_record.yaml)" << std::endl;
-  std::cerr <<
-      "  -l, --logdir <dir>     Log directory for tracking files (default: "
-      "./logs)" << std::endl;
-  std::cerr <<
-      "  -b, --bundle           Create a bundle from existing build record" << std::endl;
+  std::cerr
+      << "  -o, --output <file>    Output file for build record (default: "
+         "build_record.yaml)"
+      << std::endl;
+  std::cerr
+      << "  -l, --logdir <dir>     Log directory for tracking files (default: "
+         "./logs)"
+      << std::endl;
+  std::cerr
+      << "  -b, --bundle           Create a bundle from existing build record"
+      << std::endl;
   std::cerr << "  -h, --help             Show this help message" << std::endl;
   std::cerr << std::string("Example: ") + program_name +
-               " -o my_build.yaml -l /tmp/logs make clean all" << std::endl;
+                   " -o my_build.yaml -l /tmp/logs make clean all"
+            << std::endl;
 }
 
 bool handleBundle(const std::string& record_path,
@@ -54,18 +60,20 @@ int main(int argc, char* argv[]) {
   std::string output_file = "build_record.yaml";
   std::string log_dir = "/tmp";
   bool bundle = false;
+  bool no_upload = false;
 
   // Parse command line options
   static struct option long_options[] = {{"output", required_argument, 0, 'o'},
                                          {"logdir", required_argument, 0, 'l'},
                                          {"bundle", no_argument, 0, 'b'},
+                                         {"no-upload", no_argument, 0, 'n'},
                                          {"help", no_argument, 0, 'h'},
                                          {0, 0, 0, 0}};
 
   int c;
   int option_index = 0;
-  while ((c = getopt_long(argc, argv, "o:l:bh", long_options, &option_index)) !=
-         -1) {
+  while ((c = getopt_long(argc, argv, "o:l:bhn", long_options,
+                          &option_index)) != -1) {
     switch (c) {
       case 'o':
         output_file = optarg;
@@ -82,6 +90,9 @@ int main(int argc, char* argv[]) {
       case '?':
         printUsage(argv[0]);
         return 1;
+      case 'n':
+        no_upload = true;
+        break;
       default:
         break;
     }
@@ -133,6 +144,13 @@ int main(int argc, char* argv[]) {
   postprocessor.postprocess();
 
   build_info->build_record_.saveToFile(output_file);
+
+  // Uploader custom dependencies to MinIO
+  if (!no_upload) {
+    Uploader uploader;
+    uploader.uploadCustomDependencies(
+        build_info->build_record_.getAllDependencies());
+  }
 
   Logger::info("Build completed.");
   return 0;

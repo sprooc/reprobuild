@@ -78,6 +78,7 @@ bpftrace:
 install:
 	@wget -P /tmp https://github.com/bpftrace/bpftrace/releases/download/v0.24.2/bpftrace
 	@sudo mv /tmp/bpftrace /usr/bin/bpftrace0.24
+	@sudo chmod +x /usr/bin/bpftrace0.24
 
 # Show help
 .PHONY: help bpftrace
