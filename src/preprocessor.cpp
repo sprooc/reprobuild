@@ -17,6 +17,8 @@ std::string Preprocessor::getInterceptorLibraryPath() const {
   // Create temporary file for the interceptor library
   std::string lib_path = build_info_->log_dir_ + "/reprobuild_interceptor_" +
                          std::to_string(getpid()) + ".so";
+  // Ensure path is absolute
+  lib_path = std::filesystem::absolute(lib_path).string();
 
   try {
     // Write embedded library data to temporary file

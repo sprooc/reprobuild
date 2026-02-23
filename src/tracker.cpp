@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cctype>
 #include <cerrno>
 #include <cstring>
@@ -12,11 +13,14 @@
 #include <memory>
 #include <mutex>
 #include <regex>
+#include <set>
 #include <sstream>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "bpftrace_script.h"
+#include "build_graph.h"
 #include "interceptor_embedded.h"
 #include "logger.h"
 #include "thread_pool.h"
@@ -496,6 +500,17 @@ void Tracker::trackBuild() {
   }
   auto build_end_time = std::chrono::high_resolution_clock::now();
 
+  // Write raw bpftrace output to a file for debugging
+  const std::string raw_output_path = build_info_->log_dir_ +
+                                      "/bpftrace_raw_output_" +
+                                      std::to_string(getpid()) + ".log";
+  {
+    std::ofstream raw_output_file(raw_output_path);
+    if (raw_output_file.is_open()) {
+      raw_output_file << bpftrace_output;
+    }
+  }
+
   auto library_files = parseLibFiles(bpftrace_output);
   auto header_files = parseHeaderFiles(bpftrace_output);
   auto executables = parseExecutables(bpftrace_output);
@@ -553,6 +568,23 @@ void Tracker::trackBuild() {
 
   // Detect build artifacts from bpftrace output
   detectBuildArtifacts(bpftrace_output, record);
+
+  // Build and save the topology graph
+  try {
+    if (!build_info_->graph_output_file_.empty()) {
+      build_info_->build_graph_ = parseBuildGraph(bpftrace_output);
+      // Prune to only edges reachable from detected artifacts.
+      // Use basenames only to avoid path-form mismatches between what
+      // the linker passed to -o and what detectBuildArtifacts recorded.
+      std::unordered_set<std::string> roots;
+      for (const auto& a : record.getArtifacts()) {
+        roots.insert(std::filesystem::path(a.path).filename().string());
+      }
+      build_info_->build_graph_.pruneGraph(roots);
+    }
+  } catch (const std::exception& e) {
+    Logger::warn("Failed to save build graph: " + std::string(e.what()));
+  }
 
   auto end_time = std::chrono::high_resolution_clock::now();
   auto build_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -651,6 +683,206 @@ void Tracker::processCreatedFiles(const std::set<std::string>& created_files,
                    e.what());
     }
   }
+}
+
+BuildGraph Tracker::parseBuildGraph(const std::string& bpftrace_output) {
+  // Build tools whose invocations constitute edges in the graph
+  static const std::unordered_set<std::string> kBuildTools = {
+      "gcc",     "g++",    "cc",      "c++",    "clang",
+      "clang++", "ar",     "ld",      "ld.bfd", "ld.gold",
+      "ld.lld",  "ranlib", "objcopy", "strip",  "libtool",
+  };
+
+  // File extensions recognised as source / intermediate inputs
+  static const std::unordered_set<std::string> kInputExts = {
+      ".c", ".cpp", ".cc", ".cxx", ".C", ".s", ".S",  // sources
+      ".o", ".lo",  ".a",  ".la",                     // intermediates
+  };
+
+  // Strip a numeric version suffix: "gcc-12" → "gcc"
+  auto normalize_tool = [](const std::string& name) -> std::string {
+    const size_t dash = name.rfind('-');
+    if (dash != std::string::npos && dash + 1 < name.size() &&
+        std::all_of(name.begin() + dash + 1, name.end(), ::isdigit)) {
+      return name.substr(0, dash);
+    }
+    return name;
+  };
+
+  // Determine a node's type from its file extension / properties.
+  auto classify = [&](const std::string& p, bool is_output) -> BuildNodeType {
+    const std::string ext = std::filesystem::path(p).extension().string();
+    if (ext == ".o" || ext == ".lo") return BuildNodeType::INTERMEDIATE;
+    if (ext == ".a" || ext == ".la") return BuildNodeType::INTERMEDIATE;
+    if (ext == ".c" || ext == ".cpp" || ext == ".cc" || ext == ".cxx" ||
+        ext == ".C" || ext == ".s" || ext == ".S") {
+      return BuildNodeType::SOURCE;
+    }
+    if (Utils::isSharedLib(p)) {
+      return is_output ? BuildNodeType::ARTIFACT : BuildNodeType::INTERMEDIATE;
+    }
+    return is_output ? BuildNodeType::ARTIFACT : BuildNodeType::UNKNOWN;
+  };
+
+  BuildGraph graph;
+
+  // Lazily add (or update) a node; compute hash only once per path.
+  auto ensure_node = [&](const std::string& path, bool is_output) {
+    if (path.empty()) return;
+    if (graph.hasNode(path)) return;
+
+    BuildNode node;
+    node.path = path;
+    node.type = classify(path, is_output);
+    if (std::filesystem::exists(path)) {
+      node.hash = Utils::calculateFileHash(path);
+    }
+    graph.addNode(node);
+  };
+
+  int current_pid = -1;
+  std::string current_cmd_path;
+  std::vector<std::string> current_args;
+
+  auto flush = [&]() {
+    if (current_cmd_path.empty() || !std::filesystem::exists(current_cmd_path))
+      return;
+
+    const std::string basename =
+        std::filesystem::path(current_cmd_path).filename().string();
+    const std::string tool = normalize_tool(basename);
+
+    if (kBuildTools.find(tool) == kBuildTools.end()) {
+      current_cmd_path.clear();
+      current_args.clear();
+      return;
+    }
+
+    BuildEdge edge;
+    edge.command = tool;
+    edge.command_path = current_cmd_path;
+    edge.args = current_args;
+    edge.pid = current_pid;
+
+    // Parse inputs / output from the argument list.
+    if (tool == "ar") {
+      bool found_output = false;
+      for (const auto& arg : current_args) {
+        if (arg.empty() || arg[0] == '-') continue;
+        if (!found_output && std::filesystem::path(arg).has_extension()) {
+          edge.output = arg;
+          found_output = true;
+        } else if (found_output) {
+          const std::string ext =
+              std::filesystem::path(arg).extension().string();
+          if (kInputExts.count(ext)) {
+            edge.inputs.push_back(arg);
+          }
+        }
+      }
+    } else if (tool == "ranlib") {
+      for (const auto& arg : current_args) {
+        if (!arg.empty() && arg[0] != '-') {
+          edge.inputs.push_back(arg);
+          break;
+        }
+      }
+    } else {
+      // gcc, g++, ld, clang, ...
+      // Flags that consume the NEXT argument as a non-file parameter.
+      static const std::unordered_set<std::string> kSkipArgFlags = {
+          "-MT",
+          "-MF",
+          "-MQ",
+          "-x",
+          "-isystem",
+          "-isysroot",
+          "--sysroot",
+          "-rpath",
+          "-rpath-link",
+          "-soname",
+          "-Wl,-soname",
+          "-plugin",
+          "-plugin-opt",
+          "--dynamic-linker",
+          "-dumpbase",
+          "-m",
+          "--dependency-file",
+      };
+
+      bool next_is_output = false;
+      bool next_is_skip = false;
+      for (const auto& arg : current_args) {
+        if (next_is_output) {
+          edge.output = arg;
+          next_is_output = false;
+        } else if (next_is_skip) {
+          next_is_skip = false;  // discard this value
+        } else if (arg == "-o") {
+          next_is_output = true;
+        } else if (kSkipArgFlags.count(arg)) {
+          next_is_skip = true;
+        } else if (!arg.empty() && arg[0] != '-') {
+          const std::string ext =
+              std::filesystem::path(arg).extension().string();
+          if (kInputExts.count(ext) || Utils::isSharedLib(arg)) {
+            edge.inputs.push_back(arg);
+          }
+        }
+      }
+    }
+
+    if (edge.output.empty() || edge.inputs.empty()) {
+      return;
+    }
+
+    // Register nodes for every file referenced by this edge.
+    for (const auto& inp : edge.inputs) {
+      ensure_node(inp, /*is_output=*/false);
+    }
+    ensure_node(edge.output, /*is_output=*/true);
+
+    graph.addEdge(edge);
+
+    current_cmd_path.clear();
+    current_args.clear();
+  };
+
+  std::istringstream stream(bpftrace_output);
+  std::string line;
+
+  while (std::getline(stream, line)) {
+    if (line.empty()) continue;
+
+    // "ID <PID>: " header → flush the previous PID's command and start fresh.
+    if (Utils::startsWith(line, "ID ")) {
+      const std::string rest = line.substr(3);  // skip "ID "
+      try {
+        current_pid = std::stoi(rest);
+      } catch (...) {
+        current_pid = -1;
+      }
+      continue;
+    }
+
+    if (Utils::startsWith(line, "execve ") ||
+        Utils::startsWith(line, "execveat ")) {
+      std::istringstream ls(line);
+      std::string syscall;
+      ls >> syscall >> current_cmd_path;
+      current_args.clear();
+      std::string arg;
+      while (ls >> arg) {
+        current_args.push_back(arg);
+      }
+      flush();
+      continue;
+    }
+  }
+
+  Logger::debug("Build graph: " + std::to_string(graph.nodeCount()) +
+                " nodes, " + std::to_string(graph.edgeCount()) + " edges");
+  return graph;
 }
 
 std::string Tracker::makeRelativePath(const std::string& filepath,

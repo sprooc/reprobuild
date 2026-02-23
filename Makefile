@@ -80,6 +80,9 @@ install:
 	@sudo mv /tmp/bpftrace /usr/bin/bpftrace0.24
 	@sudo chmod +x /usr/bin/bpftrace0.24
 
+graph:
+	@tools/venv/bin/python3 tools/visualize_graph.py build_graph.yaml -o graph -f png --show-tmp
+
 # Show help
 .PHONY: help bpftrace
 help:

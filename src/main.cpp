@@ -28,11 +28,15 @@ void printUsage(const char* program_name) {
          "./logs)"
       << std::endl;
   std::cerr
+      << "  -g, --graph [<file>]   Generate build topology graph; optional "
+         "output path (default: build_graph.yaml)"
+      << std::endl;
+  std::cerr
       << "  -b, --bundle           Create a bundle from existing build record"
       << std::endl;
   std::cerr << "  -h, --help             Show this help message" << std::endl;
   std::cerr << std::string("Example: ") + program_name +
-                   " -o my_build.yaml -l /tmp/logs make clean all"
+                   " -o my_build.yaml -l /tmp/logs -g make clean all"
             << std::endl;
 }
 
@@ -59,12 +63,15 @@ bool handleBundle(const std::string& record_path,
 int main(int argc, char* argv[]) {
   std::string output_file = "build_record.yaml";
   std::string log_dir = "/tmp";
+  std::string graph_file;  // empty = disabled
   bool bundle = false;
   bool no_upload = false;
 
   // Parse command line options
+  // -g / --graph uses optional_argument: value attached with '=' or next token
   static struct option long_options[] = {{"output", required_argument, 0, 'o'},
                                          {"logdir", required_argument, 0, 'l'},
+                                         {"graph", optional_argument, 0, 'g'},
                                          {"bundle", no_argument, 0, 'b'},
                                          {"no-upload", no_argument, 0, 'n'},
                                          {"help", no_argument, 0, 'h'},
@@ -72,7 +79,7 @@ int main(int argc, char* argv[]) {
 
   int c;
   int option_index = 0;
-  while ((c = getopt_long(argc, argv, "o:l:bhn", long_options,
+  while ((c = getopt_long(argc, argv, "o:l:g::bhn", long_options,
                           &option_index)) != -1) {
     switch (c) {
       case 'o':
@@ -80,6 +87,12 @@ int main(int argc, char* argv[]) {
         break;
       case 'l':
         log_dir = optarg;
+        break;
+      case 'g':
+        // -g          → use default filename
+        // -g=foo.yaml or --graph=foo.yaml → use provided filename
+        graph_file =
+            (optarg && optarg[0] != '\0') ? optarg : "build_graph.yaml";
         break;
       case 'b':
         bundle = true;
@@ -121,6 +134,7 @@ int main(int argc, char* argv[]) {
 
   std::shared_ptr<BuildInfo> build_info = std::make_shared<BuildInfo>(
       Utils::joinCommand(build_command), output_file, log_dir);
+  build_info->graph_output_file_ = graph_file;
 
   Logger::setLevel(LogLevel::INFO);
   Logger::setLevel();
@@ -144,6 +158,10 @@ int main(int argc, char* argv[]) {
   postprocessor.postprocess();
 
   build_info->build_record_.saveToFile(output_file);
+  if (!build_info->graph_output_file_.empty()) {
+    build_info->build_graph_.saveToFile(build_info->graph_output_file_);
+    Logger::info("Build graph written to: " + build_info->graph_output_file_);
+  }
 
   // Uploader custom dependencies to MinIO
   if (!no_upload) {

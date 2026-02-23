@@ -3,8 +3,8 @@
 
 #include <string>
 
+#include "build_graph.h"
 #include "build_record.h"
-
 enum class PackageMgr { APT, DNF, YUM, PACMAN, UNKNOWN };
 
 class BuildInfo {
@@ -26,6 +26,8 @@ class BuildInfo {
   PackageMgr package_mgr_;
 
   BuildRecord build_record_;
+  BuildGraph build_graph_;
+  std::string graph_output_file_;
 
   void fillBuildRecordMetadata();
 };

@@ -1,0 +1,316 @@
+nodes:
+  - path: /home/sprooc/reprobuild/src/build_graph.cpp
+    type: source
+    hash: 4235fb871731b6f973e264ce7b6d667150f70d68d19333b6ae39832772dfd114
+  - path: /home/sprooc/reprobuild/src/build_info.cpp
+    type: source
+    hash: d0d5c26868fe06ee751dc4b56a97524053111b32b2890ab1b8d9b80294d5a046
+  - path: /home/sprooc/reprobuild/src/build_record.cpp
+    type: source
+    hash: 937c6a0e2869771ec090729a5fb6551239e83350f90ccb2140d516c9de2bf288
+  - path: /home/sprooc/reprobuild/src/bundle.cpp
+    type: source
+    hash: 312acaaf86e138eb52dfe768640d5f1ffc3b8434e4a2e3f1a30b1c120bab1a38
+  - path: /home/sprooc/reprobuild/src/canonicalizer.cpp
+    type: source
+    hash: e3664e1131e73ba1eec58b2a7c6f2f7bb33037f97bde13d75eea34b0a2049d5f
+  - path: /home/sprooc/reprobuild/src/dependency_package.cpp
+    type: source
+    hash: 6c2ed8aa849a8b1a7196c5d60bdbd7e0905288165e4853b0864d5414db3d8795
+  - path: /home/sprooc/reprobuild/src/interceptor.cpp
+    type: source
+    hash: 883747db52cf7cbcdd7bb7b348f25a01e7aff2017c93b1b5b519641c34376712
+  - path: /home/sprooc/reprobuild/src/logger.cpp
+    type: source
+    hash: 10fc9e569cc67fe440ab5de961f493659c2cecb0bf87e482175eb14a3f327c3f
+  - path: /home/sprooc/reprobuild/src/main.cpp
+    type: source
+    hash: 88986bbed9a7abfe9c3d8d00f6522ef84ace28b1bd8d277f1de185b9dca7da43
+  - path: /home/sprooc/reprobuild/src/postprocessor.cpp
+    type: source
+    hash: 245bb619b91256d3c252d19e188b7f07998cb8b56c950118d674488ac1e2c860
+  - path: /home/sprooc/reprobuild/src/preprocessor.cpp
+    type: source
+    hash: 456cec7af2496ba1983e48fb845d90b131592f975532f4d444b269fbf1c295fb
+  - path: /home/sprooc/reprobuild/src/thread_pool.cpp
+    type: source
+    hash: 32979c92bed187241858a95e6831c85412c504fea4b6f0c8e10e391862f05509
+  - path: /home/sprooc/reprobuild/src/tracker.cpp
+    type: source
+    hash: 6b978429b31539623ff58ede44155fbf5a3c569e1cda7bb96d4d13bc6175dfb1
+  - path: /home/sprooc/reprobuild/src/uploader.cpp
+    type: source
+    hash: 6e565ff860584db376a38c308de4ac4ad68de0abbe16a8015e1ed01684916e53
+  - path: /home/sprooc/reprobuild/src/utils.cpp
+    type: source
+    hash: 8dcc9109e11b39f6c7f0fbaafed347afa0fd7720852aedf5ef0c64a26669024a
+  - path: /home/sprooc/reprobuild/tests/test_build_record.cpp
+    type: source
+    hash: 58c2e1c6f3888ec933a015a563e0cc4e1042a0b0537b43ec479c2c6cafefd071
+  - path: /home/sprooc/reprobuild/tests/test_canonicalizer.cpp
+    type: source
+    hash: 2f732ae3a488cf9f72c9d3864fead6bfd1feea54ba0758ba701fd0952156ec0d
+  - path: /home/sprooc/reprobuild/tests/test_dependency_package.cpp
+    type: source
+    hash: 2300847975acf7edcc82cc7bd46e878b19fbe04090c625e6f0e1f6e604bd5a60
+  - path: /home/sprooc/reprobuild/tests/test_tracker.cpp
+    type: source
+    hash: ce7b0ea9f748885519cb3c5eb153edd9f4311cf36c69dae1fe999f9927a5e259
+  - path: /usr/lib/x86_64-linux-gnu/libcrypto.so
+    type: intermediate
+    hash: 6c77eaa915b760183f63797c2c9c422978d0999eb85f4a3431800dd848c1585f
+  - path: /usr/lib/x86_64-linux-gnu/libssl.so
+    type: intermediate
+    hash: 1ddc45fbe9ca5d300922b8a7cd6c05208d435fcf517ccc1e9e9c0d72e8a57ce3
+  - path: CMakeFiles/reprobuild.dir/src/main.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_interceptor.dir/src/interceptor.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/build_graph.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/build_info.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/build_record.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/bundle.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/canonicalizer.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/dependency_package.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/logger.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/postprocessor.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/preprocessor.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/thread_pool.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/tracker.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/uploader.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_lib.dir/src/utils.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_tests.dir/tests/test_build_record.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_tests.dir/tests/test_canonicalizer.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_tests.dir/tests/test_dependency_package.cpp.o
+    type: intermediate
+    hash: ""
+  - path: CMakeFiles/reprobuild_tests.dir/tests/test_tracker.cpp.o
+    type: intermediate
+    hash: ""
+  - path: bin/reprobuild_tests
+    type: artifact
+    hash: ""
+  - path: libreprobuild_interceptor.so
+    type: artifact
+    hash: ec0eb63fb43721b7c657608945eff5a7f10a1d2b8d4219a03ae58a34b8150353
+  - path: libreprobuild_lib.a
+    type: intermediate
+    hash: ""
+  - path: reprobuild
+    type: artifact
+    hash: cf04404293bfccd7796cb286be087bb241cf7deba9cb420bb33192b8a8715bca
+edges:
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48740
+    inputs:
+      - /home/sprooc/reprobuild/tests/test_tracker.cpp
+    output: CMakeFiles/reprobuild_tests.dir/tests/test_tracker.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_tests.dir/tests/test_tracker.cpp.o -MF CMakeFiles/reprobuild_tests.dir/tests/test_tracker.cpp.o.d -o CMakeFiles/reprobuild_tests.dir/tests/test_tracker.cpp.o -c /home/sprooc/reprobuild/tests/test_tracker.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48735
+    inputs:
+      - /home/sprooc/reprobuild/tests/test_dependency_package.cpp
+    output: CMakeFiles/reprobuild_tests.dir/tests/test_dependency_package.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_tests.dir/tests/test_dependency_package.cpp.o -MF CMakeFiles/reprobuild_tests.dir/tests/test_dependency_package.cpp.o.d -o CMakeFiles/reprobuild_tests.dir/tests/test_dependency_package.cpp.o -c /home/sprooc/reprobuild/tests/test_dependency_package.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48733
+    inputs:
+      - /home/sprooc/reprobuild/tests/test_build_record.cpp
+    output: CMakeFiles/reprobuild_tests.dir/tests/test_build_record.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_tests.dir/tests/test_build_record.cpp.o -MF CMakeFiles/reprobuild_tests.dir/tests/test_build_record.cpp.o.d -o CMakeFiles/reprobuild_tests.dir/tests/test_build_record.cpp.o -c /home/sprooc/reprobuild/tests/test_build_record.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48732
+    inputs:
+      - /home/sprooc/reprobuild/tests/test_canonicalizer.cpp
+    output: CMakeFiles/reprobuild_tests.dir/tests/test_canonicalizer.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_tests.dir/tests/test_canonicalizer.cpp.o -MF CMakeFiles/reprobuild_tests.dir/tests/test_canonicalizer.cpp.o.d -o CMakeFiles/reprobuild_tests.dir/tests/test_canonicalizer.cpp.o -c /home/sprooc/reprobuild/tests/test_canonicalizer.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48563
+    inputs:
+      - /home/sprooc/reprobuild/src/utils.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/utils.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/utils.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/utils.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/utils.cpp.o -c /home/sprooc/reprobuild/src/utils.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48558
+    inputs:
+      - /home/sprooc/reprobuild/src/uploader.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/uploader.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/uploader.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/uploader.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/uploader.cpp.o -c /home/sprooc/reprobuild/src/uploader.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48810
+    inputs:
+      - CMakeFiles/reprobuild_tests.dir/tests/test_build_record.cpp.o
+      - CMakeFiles/reprobuild_tests.dir/tests/test_canonicalizer.cpp.o
+      - CMakeFiles/reprobuild_tests.dir/tests/test_dependency_package.cpp.o
+      - CMakeFiles/reprobuild_tests.dir/tests/test_tracker.cpp.o
+      - libreprobuild_lib.a
+      - /usr/lib/x86_64-linux-gnu/libssl.so
+      - /usr/lib/x86_64-linux-gnu/libcrypto.so
+    output: bin/reprobuild_tests
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/reprobuild_tests.dir/link.d CMakeFiles/reprobuild_tests.dir/tests/test_build_record.cpp.o CMakeFiles/reprobuild_tests.dir/tests/test_canonicalizer.cpp.o CMakeFiles/reprobuild_tests.dir/tests/test_dependency_package.cpp.o CMakeFiles/reprobuild_tests.dir/tests/test_tracker.cpp.o -o bin/reprobuild_tests libreprobuild_lib.a -lgtest -lgtest_main -lpthread -lyaml-cpp /usr/lib/x86_64-linux-gnu/libssl.so /usr/lib/x86_64-linux-gnu/libcrypto.so "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48553
+    inputs:
+      - /home/sprooc/reprobuild/src/tracker.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/tracker.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/tracker.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/tracker.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/tracker.cpp.o -c /home/sprooc/reprobuild/src/tracker.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48548
+    inputs:
+      - /home/sprooc/reprobuild/src/thread_pool.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/thread_pool.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/thread_pool.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/thread_pool.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/thread_pool.cpp.o -c /home/sprooc/reprobuild/src/thread_pool.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48542
+    inputs:
+      - /home/sprooc/reprobuild/src/preprocessor.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/preprocessor.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/preprocessor.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/preprocessor.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/preprocessor.cpp.o -c /home/sprooc/reprobuild/src/preprocessor.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48518
+    inputs:
+      - /home/sprooc/reprobuild/src/postprocessor.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/postprocessor.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/postprocessor.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/postprocessor.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/postprocessor.cpp.o -c /home/sprooc/reprobuild/src/postprocessor.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48774
+    inputs:
+      - CMakeFiles/reprobuild.dir/src/main.cpp.o
+      - libreprobuild_lib.a
+      - /usr/lib/x86_64-linux-gnu/libssl.so
+      - /usr/lib/x86_64-linux-gnu/libcrypto.so
+    output: reprobuild
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/reprobuild.dir/link.d CMakeFiles/reprobuild.dir/src/main.cpp.o -o reprobuild libreprobuild_lib.a -lyaml-cpp /usr/lib/x86_64-linux-gnu/libssl.so /usr/lib/x86_64-linux-gnu/libcrypto.so "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48517
+    inputs:
+      - /home/sprooc/reprobuild/src/logger.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/logger.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/logger.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/logger.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/logger.cpp.o -c /home/sprooc/reprobuild/src/logger.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48513
+    inputs:
+      - /home/sprooc/reprobuild/src/build_record.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/build_record.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/build_record.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/build_record.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/build_record.cpp.o -c /home/sprooc/reprobuild/src/build_record.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48511
+    inputs:
+      - /home/sprooc/reprobuild/src/canonicalizer.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/canonicalizer.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/canonicalizer.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/canonicalizer.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/canonicalizer.cpp.o -c /home/sprooc/reprobuild/src/canonicalizer.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48510
+    inputs:
+      - /home/sprooc/reprobuild/src/dependency_package.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/dependency_package.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/dependency_package.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/dependency_package.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/dependency_package.cpp.o -c /home/sprooc/reprobuild/src/dependency_package.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48509
+    inputs:
+      - /home/sprooc/reprobuild/src/build_graph.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/build_graph.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/build_graph.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/build_graph.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/build_graph.cpp.o -c /home/sprooc/reprobuild/src/build_graph.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48505
+    inputs:
+      - /home/sprooc/reprobuild/src/build_info.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/build_info.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/build_info.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/build_info.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/build_info.cpp.o -c /home/sprooc/reprobuild/src/build_info.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48506
+    inputs:
+      - /home/sprooc/reprobuild/src/bundle.cpp
+    output: CMakeFiles/reprobuild_lib.dir/src/bundle.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild_lib.dir/src/bundle.cpp.o -MF CMakeFiles/reprobuild_lib.dir/src/bundle.cpp.o.d -o CMakeFiles/reprobuild_lib.dir/src/bundle.cpp.o -c /home/sprooc/reprobuild/src/bundle.cpp "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48447
+    inputs:
+      - /home/sprooc/reprobuild/src/interceptor.cpp
+    output: CMakeFiles/reprobuild_interceptor.dir/src/interceptor.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Dreprobuild_interceptor_EXPORTS -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -fPIC -MD -MT CMakeFiles/reprobuild_interceptor.dir/src/interceptor.cpp.o -MF CMakeFiles/reprobuild_interceptor.dir/src/interceptor.cpp.o.d -o CMakeFiles/reprobuild_interceptor.dir/src/interceptor.cpp.o -c /home/sprooc/reprobuild/src/interceptor.cpp "
+  - command: ar
+    command_path: /usr/bin/ar
+    pid: 48710
+    inputs:
+      - CMakeFiles/reprobuild_lib.dir/src/build_graph.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/build_info.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/build_record.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/bundle.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/canonicalizer.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/dependency_package.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/logger.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/postprocessor.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/preprocessor.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/thread_pool.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/tracker.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/uploader.cpp.o
+      - CMakeFiles/reprobuild_lib.dir/src/utils.cpp.o
+    output: libreprobuild_lib.a
+    args: "qc libreprobuild_lib.a CMakeFiles/reprobuild_lib.dir/src/build_graph.cpp.o CMakeFiles/reprobuild_lib.dir/src/build_info.cpp.o CMakeFiles/reprobuild_lib.dir/src/build_record.cpp.o CMakeFiles/reprobuild_lib.dir/src/bundle.cpp.o CMakeFiles/reprobuild_lib.dir/src/canonicalizer.cpp.o CMakeFiles/reprobuild_lib.dir/src/dependency_package.cpp.o CMakeFiles/reprobuild_lib.dir/src/logger.cpp.o CMakeFiles/reprobuild_lib.dir/src/postprocessor.cpp.o CMakeFiles/reprobuild_lib.dir/src/preprocessor.cpp.o CMakeFiles/reprobuild_lib.dir/src/thread_pool.cpp.o CMakeFiles/reprobuild_lib.dir/src/tracker.cpp.o CMakeFiles/reprobuild_lib.dir/src/uploader.cpp.o CMakeFiles/reprobuild_lib.dir/src/utils.cpp.o "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48456
+    inputs:
+      - CMakeFiles/reprobuild_interceptor.dir/src/interceptor.cpp.o
+    output: libreprobuild_interceptor.so
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -fPIC -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/reprobuild_interceptor.dir/link.d -shared -Wl,-soname,libreprobuild_interceptor.so -o libreprobuild_interceptor.so CMakeFiles/reprobuild_interceptor.dir/src/interceptor.cpp.o -ldl "
+  - command: c++
+    command_path: /usr/bin/c++
+    pid: 48734
+    inputs:
+      - /home/sprooc/reprobuild/src/main.cpp
+    output: CMakeFiles/reprobuild.dir/src/main.cpp.o
+    args: "-ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -I/home/sprooc/reprobuild/include -ffile-prefix-map=/home/sprooc/reprobuild=. -frandom-seed=0 -Wall -Wextra -Wpedantic -O3 -DNDEBUG -O3 -DNDEBUG -std=c++17 -MD -MT CMakeFiles/reprobuild.dir/src/main.cpp.o -MF CMakeFiles/reprobuild.dir/src/main.cpp.o.d -o CMakeFiles/reprobuild.dir/src/main.cpp.o -c /home/sprooc/reprobuild/src/main.cpp "

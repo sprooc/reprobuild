@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "build_graph.h"
 #include "build_info.h"
 #include "build_record.h"
 #include "dependency_package.h"
@@ -31,6 +32,7 @@ class Tracker {
                             BuildRecord& record);
   void processCreatedFiles(const std::set<std::string>& created_files,
                            BuildRecord& record);
+  BuildGraph parseBuildGraph(const std::string& bpftrace_output);
   std::string makeRelativePath(const std::string& filepath,
                                const std::string& base_dir);
   bool shouldIgnoreFile(const std::string& filepath) const;
