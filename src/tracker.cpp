@@ -699,14 +699,29 @@ BuildGraph Tracker::parseBuildGraph(const std::string& bpftrace_output) {
       ".o", ".lo",  ".a",  ".la",                     // intermediates
   };
 
-  // Strip a numeric version suffix: "gcc-12" → "gcc"
-  auto normalize_tool = [](const std::string& name) -> std::string {
-    const size_t dash = name.rfind('-');
-    if (dash != std::string::npos && dash + 1 < name.size() &&
-        std::all_of(name.begin() + dash + 1, name.end(), ::isdigit)) {
-      return name.substr(0, dash);
+  // - strip numeric version suffixes ("gcc-12" -> "gcc")
+  //   ("x86_64-linux-gnu-g++-14" -> "g++")
+  auto normalize_tool = [&](const std::string& name) -> std::string {
+    std::string normalized = name;
+
+    const size_t dash = normalized.rfind('-');
+    if (dash != std::string::npos && dash + 1 < normalized.size() &&
+        std::all_of(normalized.begin() + dash + 1, normalized.end(),
+                    [](unsigned char c) { return std::isdigit(c) != 0; })) {
+      normalized = normalized.substr(0, dash);
     }
-    return name;
+
+    if (kBuildTools.find(normalized) != kBuildTools.end()) {
+      return normalized;
+    }
+
+    for (const auto& tool : kBuildTools) {
+      if (Utils::endsWith(normalized, tool)) {
+        return tool;
+      }
+    }
+
+    return normalized;
   };
 
   // Determine a node's type from its file extension / properties.
