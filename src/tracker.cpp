@@ -216,16 +216,16 @@ std::string Tracker::processBpftraceOutput(const std::string& raw_output) {
       ++pos;
     }
 
-    if (pos >= raw_output.size() || raw_output[pos] != '|') {
+    if (pos >= raw_output.size() || raw_output[pos] != (char)0x80) {
       break;  // Invalid format or end of data
     }
 
-    const int pid = std::stoi(raw_output.substr(pid_start, pos - pid_start));
-    ++pos;  // Skip delimiter '|'
+    int pid =  std::stoi(raw_output.substr(pid_start, pos - pid_start));
+    ++pos;  // Skip delimiter 0x80
 
     // Parse content until next delimiter
     const size_t content_start = pos;
-    while (pos < raw_output.size() && raw_output[pos] != '|') {
+    while (pos < raw_output.size() && raw_output[pos] != (char)0x80) {
       ++pos;
     }
 
@@ -236,8 +236,7 @@ std::string Tracker::processBpftraceOutput(const std::string& raw_output) {
     const std::string content =
         raw_output.substr(content_start, pos - content_start);
     pid_streams[pid] += content;
-
-    ++pos;  // Skip delimiter '|'
+    ++pos;  // Skip delimiter 0x80
   }
 
   // Format output in c1 format: group by PID
