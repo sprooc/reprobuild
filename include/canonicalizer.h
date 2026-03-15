@@ -17,6 +17,12 @@ class Canonicalizer {
 
  private:
   struct Rule {
+    enum class Kind {
+      RegexReplace,
+      MakefileDefaults,
+    };
+
+    Kind kind{Kind::RegexReplace};
     std::regex pattern;
     std::string replacement;
   };

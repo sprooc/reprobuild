@@ -5,7 +5,8 @@
 
 namespace BpftraceScript {
 
-const std::string SCRIPT_TEMPLATE = R"(BEGIN
+const std::string SCRIPT_TEMPLATE = R"(let @tracked = hash(65536);
+BEGIN
 {
   $pid = *;
   @tracked[$pid] = 1;
