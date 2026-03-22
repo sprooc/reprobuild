@@ -96,6 +96,7 @@ std::string BuildRecord::toString() const {
 
 void BuildRecord::saveToFile(const std::string& filepath) const {
   YAML::Node root;
+  root["project"] = project_name_;
 
   // Add metadata section
   YAML::Node metadata_node;
@@ -243,6 +244,22 @@ BuildRecord BuildRecord::loadFromFile(const std::string& filepath) {
     }
     if (metadata["umask"]) {
       record.umask_ = metadata["umask"].as<std::string>();
+    }
+    if (metadata["random_seed"]) {
+      record.random_seed_ = metadata["random_seed"].as<std::string>();
+    }
+    if (metadata["build_cmd"]) {
+      record.build_cmd_ = metadata["build_cmd"].as<std::string>();
+    }
+  }
+
+  if (root["git_commit_ids"] && root["git_commit_ids"].IsSequence()) {
+    for (const auto& commit_node : root["git_commit_ids"]) {
+      if (commit_node["repo"] && commit_node["commit_id"]) {
+        record.git_commit_ids_.emplace_back(
+            commit_node["repo"].as<std::string>(),
+            commit_node["commit_id"].as<std::string>());
+      }
     }
   }
 

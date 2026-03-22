@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cerrno>
 #include <cstring>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -37,6 +38,96 @@ const int kBpftraceProcessingDelay = 200;
 const int kBpftraceFlushDelay = 500;
 const int kBpftraceAttachTimeout = 10000;  // 10 seconds
 
+struct PathMapping {
+  std::string observed_prefix;
+  std::string local_prefix;
+};
+
+std::string normalizePath(const std::string& path) {
+  return std::filesystem::path(path).lexically_normal().string();
+}
+
+bool hasPathPrefix(const std::string& path, const std::string& prefix) {
+  if (path == prefix) {
+    return true;
+  }
+  if (path.size() <= prefix.size()) {
+    return false;
+  }
+  if (path.compare(0, prefix.size(), prefix) != 0) {
+    return false;
+  }
+  return path[prefix.size()] == '/';
+}
+
+std::vector<PathMapping> loadPathMappings() {
+  const char* raw_env = std::getenv("REPROBUILD_PATH_MAP");
+  if (!raw_env || raw_env[0] == '\0') {
+    return {};
+  }
+
+  std::string env_value(raw_env);
+  std::replace(env_value.begin(), env_value.end(), '\n', ';');
+
+  std::vector<PathMapping> mappings;
+  std::stringstream ss(env_value);
+  std::string entry;
+  while (std::getline(ss, entry, ';')) {
+    if (entry.empty()) {
+      continue;
+    }
+
+    const size_t eq_pos = entry.find('=');
+    if (eq_pos == std::string::npos || eq_pos == 0 ||
+        eq_pos == entry.size() - 1) {
+      continue;
+    }
+
+    PathMapping mapping;
+    mapping.observed_prefix = normalizePath(entry.substr(0, eq_pos));
+    mapping.local_prefix = normalizePath(entry.substr(eq_pos + 1));
+    if (mapping.observed_prefix.empty() || mapping.local_prefix.empty()) {
+      continue;
+    }
+    mappings.push_back(std::move(mapping));
+  }
+
+  std::sort(mappings.begin(), mappings.end(),
+            [](const PathMapping& lhs, const PathMapping& rhs) {
+              return lhs.observed_prefix.size() > rhs.observed_prefix.size();
+            });
+  return mappings;
+}
+
+std::string remapObservedPath(const std::string& original_path) {
+  if (original_path.empty()) {
+    return original_path;
+  }
+
+  const std::string normalized = normalizePath(original_path);
+  static const std::vector<PathMapping> mappings = loadPathMappings();
+  for (auto mapping: mappings) {
+    Logger::info("Loaded path mapping: " + mapping.observed_prefix + " -> " +
+                  mapping.local_prefix);
+  }
+  for (const auto& mapping : mappings) {
+    if (!hasPathPrefix(normalized, mapping.observed_prefix)) {
+      continue;
+    }
+
+    if (normalized == mapping.observed_prefix) {
+      Logger::info("Exact match for path mapping: " + normalized + " -> " +
+                  mapping.local_prefix);
+      return mapping.local_prefix;
+    }
+
+    const std::string suffix = normalized.substr(mapping.observed_prefix.size());
+    return normalizePath(mapping.local_prefix + suffix);
+  }
+  Logger::info("No mapping applied for path: " + normalized);
+  return normalized;
+}
+
 }  // namespace
 
 Tracker::Tracker(std::shared_ptr<BuildInfo> build_info)
@@ -46,6 +137,7 @@ Tracker::Tracker(std::shared_ptr<BuildInfo> build_info)
   ignore_patterns_.push_back("/proc/");
   ignore_patterns_.push_back("/sys/");
   ignore_patterns_.push_back("/dev/");
+  ignore_patterns_.push_back("libreprobuild_interceptor.so");
 }
 
 void Tracker::addIgnorePattern(const std::string& pattern) {
@@ -268,6 +360,7 @@ std::set<std::string> Tracker::parseLibFiles(
     std::istringstream line_stream(line);
     std::string syscall, filepath;
     line_stream >> syscall >> filepath;
+    filepath = remapObservedPath(filepath);
 
     if (filepath.empty()) {
       continue;
@@ -317,6 +410,7 @@ std::set<std::string> Tracker::parseHeaderFiles(
     std::istringstream line_stream(line);
     std::string syscall, filepath;
     line_stream >> syscall >> filepath;
+    filepath = remapObservedPath(filepath);
 
     if (filepath.empty()) {
       continue;
@@ -369,6 +463,7 @@ std::set<std::string> Tracker::parseExecutables(
     std::istringstream line_stream(line);
     std::string syscall, exec_path;
     line_stream >> syscall >> exec_path;
+    exec_path = remapObservedPath(exec_path);
 
     if (exec_path.empty()) {
       continue;
@@ -634,6 +729,7 @@ void Tracker::detectBuildArtifacts(const std::string& bpftrace_output,
       }
     }
 
+    filepath = remapObservedPath(filepath);
     if (!filepath.empty() && std::filesystem::exists(filepath)) {
       Logger::debug("Found created file: " + filepath);
       created_files.insert(filepath);
@@ -652,8 +748,13 @@ void Tracker::processCreatedFiles(const std::set<std::string>& created_files,
         continue;
       }
 
+      const auto status = std::filesystem::status(filepath);
+      if (!std::filesystem::is_regular_file(status)) {
+        continue;
+      }
+
       // Check file type
-      const auto perms = std::filesystem::status(filepath).permissions();
+      const auto perms = status.permissions();
       const bool is_executable = (perms & std::filesystem::perms::owner_exec) !=
                                  std::filesystem::perms::none;
       const bool is_shared_lib = Utils::isSharedLib(filepath);
