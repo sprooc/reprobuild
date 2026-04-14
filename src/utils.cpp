@@ -214,4 +214,11 @@ bool isSharedLib(const std::string& filepath) {
   return false;
 }
 
+bool isStaticLib(const std::string& filepath) {
+  if (endsWith(filepath, ".a") || endsWith(filepath, ".la")) {
+    return true;
+  }
+  return false;
+}
+
 }  // namespace Utils

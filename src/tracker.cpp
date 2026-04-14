@@ -6,8 +6,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cerrno>
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -106,9 +106,9 @@ std::string remapObservedPath(const std::string& original_path) {
 
   const std::string normalized = normalizePath(original_path);
   static const std::vector<PathMapping> mappings = loadPathMappings();
-  for (auto mapping: mappings) {
+  for (auto mapping : mappings) {
     Logger::info("Loaded path mapping: " + mapping.observed_prefix + " -> " +
-                  mapping.local_prefix);
+                 mapping.local_prefix);
   }
   for (const auto& mapping : mappings) {
     if (!hasPathPrefix(normalized, mapping.observed_prefix)) {
@@ -117,11 +117,12 @@ std::string remapObservedPath(const std::string& original_path) {
 
     if (normalized == mapping.observed_prefix) {
       Logger::info("Exact match for path mapping: " + normalized + " -> " +
-                  mapping.local_prefix);
+                   mapping.local_prefix);
       return mapping.local_prefix;
     }
 
-    const std::string suffix = normalized.substr(mapping.observed_prefix.size());
+    const std::string suffix =
+        normalized.substr(mapping.observed_prefix.size());
     return normalizePath(mapping.local_prefix + suffix);
   }
   Logger::info("No mapping applied for path: " + normalized);
@@ -312,7 +313,7 @@ std::string Tracker::processBpftraceOutput(const std::string& raw_output) {
       break;  // Invalid format or end of data
     }
 
-    int pid =  std::stoi(raw_output.substr(pid_start, pos - pid_start));
+    int pid = std::stoi(raw_output.substr(pid_start, pos - pid_start));
     ++pos;  // Skip delimiter 0x80
 
     // Parse content until next delimiter
@@ -758,20 +759,26 @@ void Tracker::processCreatedFiles(const std::set<std::string>& created_files,
       const bool is_executable = (perms & std::filesystem::perms::owner_exec) !=
                                  std::filesystem::perms::none;
       const bool is_shared_lib = Utils::isSharedLib(filepath);
+      const bool is_static_lib = Utils::isStaticLib(filepath);
 
-      if (!is_executable && !is_shared_lib) {
+      if (!is_executable && !is_shared_lib && !is_static_lib) {
         continue;
       }
 
       Logger::debug("Created file " + filepath +
                     (is_executable ? " is executable." : "") +
-                    (is_shared_lib ? " is shared library." : ""));
+                    (is_shared_lib ? " is shared library." : "") +
+                    (is_static_lib ? " is static library." : ""));
 
       // Add artifact to build record
       const std::string hash = Utils::calculateFileHash(filepath);
       const std::string display_path = makeRelativePath(filepath, ".");
-      const std::string artifact_type =
-          is_shared_lib ? "shared_library" : "executable";
+      std::string artifact_type = "executable";
+      if (is_shared_lib) {
+        artifact_type = "shared_library";
+      } else if (is_static_lib) {
+        artifact_type = "static_library";
+      }
 
       BuildArtifact artifact(display_path, hash, artifact_type);
       record.addArtifact(artifact);

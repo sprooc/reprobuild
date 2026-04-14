@@ -245,7 +245,7 @@ bool Uploader::uploadToMinioWithCurl(const std::string& local_file,
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
     response += buffer;
   }
-  int exit_code = pclose(pipe);
+  pclose(pipe);
 
   // Extract HTTP status code
   size_t code_pos = response.find("HTTP_CODE:");
