@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -37,6 +38,24 @@ const int kBpftraceAttachCheckInterval = 100;
 const int kBpftraceProcessingDelay = 200;
 const int kBpftraceFlushDelay = 500;
 const int kBpftraceAttachTimeout = 10000;  // 10 seconds
+
+using Clock = std::chrono::steady_clock;
+
+long long elapsedMs(Clock::time_point start, Clock::time_point end) {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+      .count();
+}
+
+std::set<std::string> mergeDependencyFiles(
+    const std::set<std::string>& library_files,
+    const std::set<std::string>& header_files,
+    const std::set<std::string>& executables) {
+  std::set<std::string> dependency_files;
+  dependency_files.insert(library_files.begin(), library_files.end());
+  dependency_files.insert(header_files.begin(), header_files.end());
+  dependency_files.insert(executables.begin(), executables.end());
+  return dependency_files;
+}
 
 struct PathMapping {
   std::string observed_prefix;
@@ -107,7 +126,7 @@ std::string remapObservedPath(const std::string& original_path) {
   const std::string normalized = normalizePath(original_path);
   static const std::vector<PathMapping> mappings = loadPathMappings();
   for (auto mapping : mappings) {
-    Logger::info("Loaded path mapping: " + mapping.observed_prefix + " -> " +
+    Logger::debug("Loaded path mapping: " + mapping.observed_prefix + " -> " +
                  mapping.local_prefix);
   }
   for (const auto& mapping : mappings) {
@@ -116,7 +135,7 @@ std::string remapObservedPath(const std::string& original_path) {
     }
 
     if (normalized == mapping.observed_prefix) {
-      Logger::info("Exact match for path mapping: " + normalized + " -> " +
+      Logger::debug("Exact match for path mapping: " + normalized + " -> " +
                    mapping.local_prefix);
       return mapping.local_prefix;
     }
@@ -125,7 +144,6 @@ std::string remapObservedPath(const std::string& original_path) {
         normalized.substr(mapping.observed_prefix.size());
     return normalizePath(mapping.local_prefix + suffix);
   }
-  Logger::info("No mapping applied for path: " + normalized);
   return normalized;
 }
 
@@ -145,7 +163,10 @@ void Tracker::addIgnorePattern(const std::string& pattern) {
   ignore_patterns_.push_back(pattern);
 }
 
+const TrackingTiming& Tracker::getTiming() const { return timing_; }
+
 std::string Tracker::executeWithBpftrace(const std::string& command) {
+  const auto preprocessing_start = Clock::now();
   const pid_t current_pid = getpid();
   const std::string pid_str = std::to_string(current_pid);
 
@@ -225,11 +246,19 @@ std::string Tracker::executeWithBpftrace(const std::string& command) {
   }
 
   // Execute the actual build command
+  const auto build_start = Clock::now();
+  timing_.preprocessing_ms += elapsedMs(preprocessing_start, build_start);
+
   Logger::debug("Executing: " + command);
   const int exit_code = std::system(command.c_str());
+  const auto build_end = Clock::now();
+  timing_.build_execution_ms += elapsedMs(build_start, build_end);
+
   if (exit_code != 0) {
     Logger::warn("Command exited with code: " + std::to_string(exit_code));
   }
+
+  const auto postprocessing_start = build_end;
 
   // Give bpftrace time to finish processing
   std::this_thread::sleep_for(
@@ -287,7 +316,10 @@ std::string Tracker::executeWithBpftrace(const std::string& command) {
     }
   }
 
-  return processBpftraceOutput(raw_output);
+  std::string processed_output = processBpftraceOutput(raw_output);
+  timing_.postprocessing_ms +=
+      elapsedMs(postprocessing_start, Clock::now());
+  return processed_output;
 }
 
 std::string Tracker::processBpftraceOutput(const std::string& raw_output) {
@@ -584,8 +616,9 @@ bool Tracker::shouldIgnoreArtifact(const std::string& filepath) const {
 }
 
 void Tracker::trackBuild() {
+  timing_ = TrackingTiming{};
   Logger::info("Build command: " + build_info_->build_command_);
-  auto start_time = std::chrono::high_resolution_clock::now();
+  const auto tracking_start = Clock::now();
   std::string bpftrace_output;
   try {
     bpftrace_output = executeWithBpftrace(build_info_->build_command_);
@@ -593,7 +626,7 @@ void Tracker::trackBuild() {
     Logger::error("Error executing build command: " + std::string(e.what()));
     return;
   }
-  auto build_end_time = std::chrono::high_resolution_clock::now();
+  const auto analysis_start = Clock::now();
 
   // Write raw bpftrace output to a file for debugging
   const std::string raw_output_path = build_info_->log_dir_ +
@@ -644,16 +677,13 @@ void Tracker::trackBuild() {
     }
   };
 
-  for (const auto& library_file : library_files) {
-    futures.emplace_back(pool.enqueue(process_file, library_file));
-  }
+  auto dependency_files =
+      mergeDependencyFiles(library_files, header_files, executables);
+  Logger::info("Processing " + std::to_string(dependency_files.size()) +
+               " unique dependency files");
 
-  for (const auto& header_file : header_files) {
-    futures.emplace_back(pool.enqueue(process_file, header_file));
-  }
-
-  for (const auto& executable : executables) {
-    futures.emplace_back(pool.enqueue(process_file, executable));
+  for (const auto& dependency_file : dependency_files) {
+    futures.emplace_back(pool.enqueue(process_file, dependency_file));
   }
 
   // Wait for all tasks to complete
@@ -681,18 +711,18 @@ void Tracker::trackBuild() {
     Logger::warn("Failed to save build graph: " + std::string(e.what()));
   }
 
-  auto end_time = std::chrono::high_resolution_clock::now();
-  auto build_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                            build_end_time - start_time)
-                            .count();
-  auto total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                            end_time - start_time)
-                            .count();
+  const auto analysis_end = Clock::now();
+  timing_.postprocessing_ms += elapsedMs(analysis_start, analysis_end);
+  timing_.total_ms = elapsedMs(tracking_start, analysis_end);
 
-  Logger::info("Build execution time: " + std::to_string(build_duration) +
-               " ms");
-  Logger::info("Total tracking time: " + std::to_string(total_duration) +
-               " ms");
+  Logger::debug("Tracker preprocessing time: " +
+                std::to_string(timing_.preprocessing_ms) + " ms");
+  Logger::debug("Tracker build execution time: " +
+                std::to_string(timing_.build_execution_ms) + " ms");
+  Logger::debug("Tracker postprocessing time: " +
+                std::to_string(timing_.postprocessing_ms) + " ms");
+  Logger::debug("Tracker total time: " + std::to_string(timing_.total_ms) +
+                " ms");
 }
 
 void Tracker::detectBuildArtifacts(const std::string& bpftrace_output,

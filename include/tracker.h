@@ -11,17 +11,26 @@
 #include "build_record.h"
 #include "dependency_package.h"
 
+struct TrackingTiming {
+  long long preprocessing_ms = 0;
+  long long build_execution_ms = 0;
+  long long postprocessing_ms = 0;
+  long long total_ms = 0;
+};
+
 class Tracker {
  public:
   Tracker(std::shared_ptr<BuildInfo> build_info);
 
   void trackBuild();
+  const TrackingTiming& getTiming() const;
 
   void addIgnorePattern(const std::string& pattern);
 
  private:
   std::vector<std::string> ignore_patterns_;
   std::shared_ptr<BuildInfo> build_info_;
+  TrackingTiming timing_;
 
   std::string executeWithBpftrace(const std::string& command);
   std::string processBpftraceOutput(const std::string& raw_output);

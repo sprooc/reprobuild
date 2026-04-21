@@ -1,12 +1,10 @@
 #include "dependency_package.h"
 
-#include <algorithm>
-#include <cstdlib>
 #include <filesystem>
-#include <memory>
 #include <sstream>
 #include <stdexcept>
 
+#include "dependency_resolver.h"
 #include "utils.h"
 
 DependencyPackage::DependencyPackage()
@@ -89,55 +87,12 @@ std::ostream& operator<<(std::ostream& os, const DependencyPackage& package) {
 
 bool checkPackageWithDpkg(const std::string& raw_file_path,
                           DependencyPackage& package) {
-  // Get realpath of the file
-  std::string realpath_command = "realpath " + raw_file_path;
-  std::string real_path = Utils::executeCommand(realpath_command);
-
-  // Use dpkg -S to find which package owns the file
-  // Try raw file path first, then real path if needed
-  std::string dpkg_command =
-      "dpkg -S " + raw_file_path + " 2>/dev/null | head -1 | cut -d: -f1";
-  std::string package_name = Utils::executeCommand(dpkg_command);
-
-  if (package_name.empty() || Utils::startsWith(package_name, "diversion by")) {
-    // If raw path failed, try with real path
-    dpkg_command =
-        "dpkg -S " + real_path + " 2>/dev/null | head -1 | cut -d: -f1";
-    package_name = Utils::executeCommand(dpkg_command);
-  }
-
-  if (package_name.empty()) {
-    return false;  // Package not found
-  }
-
-  // Get precise version using dpkg-query
-  std::string version_command =
-      "dpkg-query -W -f='${Version}\\n' " + package_name + " 2>/dev/null";
-  std::string version = Utils::executeCommand(version_command);
-
-  if (version.empty()) {
-    throw std::runtime_error("Could not get version for package: " +
-                             package_name);
-  }
-
-  // Calculate SHA256 hash of the file
-  std::string hash_value = Utils::calculateFileHash(real_path);
-
-  if (hash_value.empty()) {
-    throw std::runtime_error("Could not calculate hash for file: " +
-                             raw_file_path);
-  }
-
-  package = DependencyPackage(package_name, DependencyOrigin::APT, real_path,
-                              version, hash_value);
-  return true;
+  return DependencyResolver::resolveAptPackage(raw_file_path, package);
 }
 
 bool checkPackageWithRpm(const std::string& raw_file_path,
                          DependencyPackage& package) {
-  // Get realpath of the file
-  std::string realpath_command = "realpath " + raw_file_path;
-  std::string real_path = Utils::executeCommand(realpath_command);
+  std::string real_path = DependencyResolver::canonicalizePath(raw_file_path);
 
   // Use rpm -qf to find which package owns the file
   std::string rpm_command =
@@ -173,22 +128,21 @@ bool checkPackageWithRpm(const std::string& raw_file_path,
                              package_name);
   }
 
-  // Calculate SHA256 hash of the file
-  std::string hash_value = Utils::calculateFileHash(real_path);
-
-  if (hash_value.empty()) {
-    throw std::runtime_error("Could not calculate hash for file: " +
-                             raw_file_path);
-  }
-
-  package = DependencyPackage(package_name_clean, DependencyOrigin::DNF,
-                              real_path, version, hash_value);
+  package = DependencyResolver::createDependencyPackage(
+      package_name_clean, DependencyOrigin::DNF, raw_file_path, real_path,
+      version);
   return true;
 }
 
 // Static method to create a DependencyPackage from a raw file
 DependencyPackage DependencyPackage::fromRawFile(
     const std::string& raw_file_path, PackageMgr pkg_mgr) {
+  DependencyPackage cached_package;
+  if (DependencyResolver::getCachedPackage(pkg_mgr, raw_file_path,
+                                           cached_package)) {
+    return cached_package;
+  }
+
   try {
     // Check if file exists
     if (!std::filesystem::exists(raw_file_path)) {
@@ -211,18 +165,12 @@ DependencyPackage DependencyPackage::fromRawFile(
     }
 
     if (success) {
-      return package;
+      return DependencyResolver::cachePackage(pkg_mgr, raw_file_path, package);
     } else {
       // Custom file not owned by any package
-      std::string realpath_command = "realpath " + raw_file_path;
-      std::string real_path = Utils::executeCommand(realpath_command);
-      std::string package_name =
-          std::filesystem::path(real_path).filename().string();
-      std::string hash_value = Utils::calculateFileHash(real_path);
-      DependencyPackage package =
-          DependencyPackage(package_name, DependencyOrigin::CUSTOM,
-                            real_path, "custom", hash_value);
-      return package;
+      return DependencyResolver::cachePackage(
+          pkg_mgr, raw_file_path,
+          DependencyResolver::createCustomDependency(raw_file_path));
     }
 
   } catch (const std::exception& e) {
@@ -230,6 +178,7 @@ DependencyPackage DependencyPackage::fromRawFile(
     DependencyPackage invalid_package;
     invalid_package.setOriginalPath(raw_file_path);
     invalid_package.setHashValue("ERROR: " + std::string(e.what()));
-    return invalid_package;
+    return DependencyResolver::cachePackage(pkg_mgr, raw_file_path,
+                                            invalid_package);
   }
 }

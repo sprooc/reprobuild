@@ -1,5 +1,6 @@
 #include <getopt.h>
 
+#include <chrono>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -13,6 +14,15 @@
 #include "tracker.h"
 #include "uploader.h"
 #include "utils.h"
+
+namespace {
+using Clock = std::chrono::steady_clock;
+
+long long elapsedMs(Clock::time_point start, Clock::time_point end) {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+      .count();
+}
+}  // namespace
 
 void printUsage(const char* program_name) {
   std::cerr << (std::string("Usage: ") + program_name +
@@ -132,6 +142,8 @@ int main(int argc, char* argv[]) {
     build_command.push_back(argv[i]);
   }
 
+  const auto reprobuild_start = Clock::now();
+  const auto preprocessing_start = reprobuild_start;
   std::shared_ptr<BuildInfo> build_info = std::make_shared<BuildInfo>(
       Utils::joinCommand(build_command), output_file, log_dir);
   build_info->graph_output_file_ = graph_file;
@@ -144,6 +156,7 @@ int main(int argc, char* argv[]) {
   preprocessor.fixMakefile();
 
   build_info->fillBuildRecordMetadata();
+  const auto preprocessing_end = Clock::now();
 
   Tracker tracker(build_info);
   try {
@@ -154,6 +167,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  const auto postprocessing_start = Clock::now();
   Postprocessor postprocessor(build_info);
   postprocessor.postprocess();
 
@@ -170,6 +184,26 @@ int main(int argc, char* argv[]) {
         build_info->build_record_.getAllDependencies());
   }
 
+  const auto reprobuild_end = Clock::now();
+  const TrackingTiming& tracker_timing = tracker.getTiming();
+  const long long preprocessing_ms =
+      elapsedMs(preprocessing_start, preprocessing_end) +
+      tracker_timing.preprocessing_ms;
+  const long long build_execution_ms = tracker_timing.build_execution_ms;
+  const long long postprocessing_ms =
+      tracker_timing.postprocessing_ms +
+      elapsedMs(postprocessing_start, reprobuild_end);
+  const long long total_tracking_ms =
+      elapsedMs(reprobuild_start, reprobuild_end);
+
+  Logger::info("Preprocessing time: " + std::to_string(preprocessing_ms) +
+               " ms");
+  Logger::info("Build execution time: " +
+               std::to_string(build_execution_ms) + " ms");
+  Logger::info("Postprocessing time: " + std::to_string(postprocessing_ms) +
+               " ms");
+  Logger::info("Total tracking time: " + std::to_string(total_tracking_ms) +
+               " ms");
   Logger::info("Build completed.");
   return 0;
 }
