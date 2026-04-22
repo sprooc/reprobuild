@@ -2,6 +2,7 @@
 
 #include <sys/stat.h>
 
+#include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -9,6 +10,8 @@
 #include <memory>
 #include <sstream>
 #include <vector>
+
+#include <openssl/evp.h>
 
 #include "logger.h"
 
@@ -55,14 +58,51 @@ std::string executeCommand(const std::string& command) {
 }
 
 std::string calculateFileHash(const std::string& filepath) {
-  try {
-    std::string hash_command =
-        "sha256sum \"" + filepath + "\" 2>/dev/null | cut -d' ' -f1";
-    return executeCommand(hash_command);
-  } catch (const std::exception& e) {
-    Logger::warn("Error calculating hash for " + filepath + ": " + e.what());
+  std::ifstream file(filepath, std::ios::binary);
+  if (!file.is_open()) {
     return "";
   }
+
+  std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(
+      EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  if (!ctx ||
+      EVP_DigestInit_ex(ctx.get(), EVP_sha256(), nullptr) != 1) {
+    Logger::warn("Error initializing SHA-256 for " + filepath);
+    return "";
+  }
+
+  std::array<char, 64 * 1024> buffer;
+  while (file) {
+    file.read(buffer.data(), buffer.size());
+    const std::streamsize bytes_read = file.gcount();
+    if (bytes_read > 0 &&
+        EVP_DigestUpdate(ctx.get(), buffer.data(),
+                         static_cast<size_t>(bytes_read)) != 1) {
+      Logger::warn("Error updating SHA-256 for " + filepath);
+      return "";
+    }
+  }
+
+  if (file.bad()) {
+    Logger::warn("Error reading file for hash: " + filepath);
+    return "";
+  }
+
+  unsigned char digest[EVP_MAX_MD_SIZE];
+  unsigned int digest_len = 0;
+  if (EVP_DigestFinal_ex(ctx.get(), digest, &digest_len) != 1) {
+    Logger::warn("Error finalizing SHA-256 for " + filepath);
+    return "";
+  }
+
+  static constexpr char kHex[] = "0123456789abcdef";
+  std::string hash;
+  hash.resize(static_cast<size_t>(digest_len) * 2);
+  for (unsigned int i = 0; i < digest_len; ++i) {
+    hash[2 * i] = kHex[digest[i] >> 4];
+    hash[2 * i + 1] = kHex[digest[i] & 0x0f];
+  }
+  return hash;
 }
 
 std::string getCurrentTimestamp() {

@@ -168,20 +168,32 @@ int main(int argc, char* argv[]) {
   }
 
   const auto postprocessing_start = Clock::now();
+  const auto record_postprocess_start = Clock::now();
   Postprocessor postprocessor(build_info);
   postprocessor.postprocess();
+  const long long record_postprocess_ms =
+      elapsedMs(record_postprocess_start, Clock::now());
 
+  const auto record_save_start = Clock::now();
   build_info->build_record_.saveToFile(output_file);
+  const long long record_save_ms = elapsedMs(record_save_start, Clock::now());
+
+  long long graph_save_ms = 0;
   if (!build_info->graph_output_file_.empty()) {
+    const auto graph_save_start = Clock::now();
     build_info->build_graph_.saveToFile(build_info->graph_output_file_);
+    graph_save_ms = elapsedMs(graph_save_start, Clock::now());
     Logger::info("Build graph written to: " + build_info->graph_output_file_);
   }
 
+  long long upload_ms = 0;
   // Uploader custom dependencies to MinIO
   if (!no_upload) {
+    const auto upload_start = Clock::now();
     Uploader uploader;
     uploader.uploadCustomDependencies(
         build_info->build_record_.getAllDependencies());
+    upload_ms = elapsedMs(upload_start, Clock::now());
   }
 
   const auto reprobuild_end = Clock::now();
@@ -202,6 +214,13 @@ int main(int argc, char* argv[]) {
                std::to_string(build_execution_ms) + " ms");
   Logger::info("Postprocessing time: " + std::to_string(postprocessing_ms) +
                " ms");
+  Logger::info("Postprocessing detail: tracker=" +
+               std::to_string(tracker_timing.postprocessing_ms) +
+               " ms, git_postprocess=" +
+               std::to_string(record_postprocess_ms) +
+               " ms, record_save=" + std::to_string(record_save_ms) +
+               " ms, graph_save=" + std::to_string(graph_save_ms) +
+               " ms, upload=" + std::to_string(upload_ms) + " ms");
   Logger::info("Total tracking time: " + std::to_string(total_tracking_ms) +
                " ms");
   Logger::info("Build completed.");

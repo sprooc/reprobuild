@@ -31,7 +31,9 @@ struct BuildEdge {
 class BuildGraph {
  public:
   void addNode(const BuildNode& node);
+  void addNode(BuildNode&& node);
   void addEdge(const BuildEdge& edge);
+  void addEdge(BuildEdge&& edge);
   bool hasNode(const std::string& path) const;
 
   const std::map<std::string, BuildNode>& getNodes() const { return nodes_; }

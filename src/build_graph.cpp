@@ -8,12 +8,20 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 void BuildGraph::addNode(const BuildNode& node) {
   nodes_.emplace(node.path, node);
 }
 
+void BuildGraph::addNode(BuildNode&& node) {
+  std::string key = node.path;
+  nodes_.emplace(std::move(key), std::move(node));
+}
+
 void BuildGraph::addEdge(const BuildEdge& edge) { edges_.push_back(edge); }
+
+void BuildGraph::addEdge(BuildEdge&& edge) { edges_.push_back(std::move(edge)); }
 
 bool BuildGraph::hasNode(const std::string& path) const {
   return nodes_.find(path) != nodes_.end();

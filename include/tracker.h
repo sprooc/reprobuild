@@ -14,6 +14,14 @@
 struct TrackingTiming {
   long long preprocessing_ms = 0;
   long long build_execution_ms = 0;
+  long long bpftrace_finalization_ms = 0;
+  long long raw_output_write_ms = 0;
+  long long dependency_file_parse_ms = 0;
+  long long dependency_resolution_ms = 0;
+  long long artifact_detection_ms = 0;
+  long long graph_parse_ms = 0;
+  long long graph_prune_ms = 0;
+  long long graph_total_ms = 0;
   long long postprocessing_ms = 0;
   long long total_ms = 0;
 };

@@ -2,6 +2,7 @@
 build/
 Build/
 BUILD/
+results/
 
 # CMake generated files
 CMakeFiles/
