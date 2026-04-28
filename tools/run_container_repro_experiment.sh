@@ -3,8 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 DEFAULT_REPROBUILD_ROOT=$(cd "${SCRIPT_DIR}/.." && pwd -P)
-DEFAULT_C_BUILD_ROOT="/home/sprooc/c_build"
-
+DEFAULT_C_BUILD_ROOT="${DEFAULT_REPROBUILD_ROOT}/c_build"
 PROJECT_ROOT=""
 RESULT_DIR=""
 REPROBUILD_ROOT="${DEFAULT_REPROBUILD_ROOT}"
@@ -18,6 +17,7 @@ SKIP_DEBUG=0
 SKIP_RENDER=0
 RUN_RENDERED=0
 BUILD_CMD=()
+SNAPSHOT_ARTIFACTS=()
 
 usage() {
   cat <<'EOF'
@@ -38,6 +38,8 @@ Options:
   --skip-debug             Skip c_build debug-mode container verification
   --skip-render            Skip c_build render-only Dockerfile/build.sh generation
   --run-rendered           Run generated build.sh after render step
+  --snapshot-artifact=PATH Copy a host-built artifact after tracked build;
+                           may be provided more than once
   -h, --help               Show this help message
 
 Examples:
@@ -58,6 +60,13 @@ info() {
 
 warn() {
   echo "WARN: $*" >&2
+}
+
+fix_project_permissions() {
+  if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+    info "Fixing project file ownership before clean"
+    sudo chown -R "$(id -u):$(id -g)" "${PROJECT_ROOT}"
+  fi
 }
 
 canonicalize_dir() {
@@ -114,6 +123,9 @@ while [[ $# -gt 0 ]]; do
     --run-rendered)
       RUN_RENDERED=1
       ;;
+    --snapshot-artifact=*)
+      SNAPSHOT_ARTIFACTS+=("${1#*=}")
+      ;;
     -h|--help)
       usage
       exit 0
@@ -153,8 +165,9 @@ fi
 
 TRACKER_LOG_DIR="${RESULT_DIR}/tracker_logs"
 HOST_SNAPSHOT_DIR="${RESULT_DIR}/host"
+HOST_ARTIFACT_SNAPSHOT_DIR="${RESULT_DIR}/host_artifacts"
 LOG_DIR="${RESULT_DIR}/logs"
-mkdir -p "${TRACKER_LOG_DIR}" "${HOST_SNAPSHOT_DIR}" "${LOG_DIR}" "${C_BUILD_OUTPUT}"
+mkdir -p "${TRACKER_LOG_DIR}" "${HOST_SNAPSHOT_DIR}" "${HOST_ARTIFACT_SNAPSHOT_DIR}" "${LOG_DIR}" "${C_BUILD_OUTPUT}"
 
 if [[ -z "${CONTAINER_NAME}" ]]; then
   CONTAINER_NAME=$(detect_container_name || true)
@@ -203,6 +216,7 @@ container_name=${CONTAINER_NAME}
 result_dir=${RESULT_DIR}
 host_build_record_snapshot=${SNAPSHOT_RECORD_PATH}
 host_build_graph_snapshot=${SNAPSHOT_GRAPH_PATH}
+host_artifact_snapshot_dir=${HOST_ARTIFACT_SNAPSHOT_DIR}
 c_build_output=${C_BUILD_OUTPUT}
 c_build_build_record_snapshot=${C_BUILD_RECORD_PATH}
 c_build_build_graph_snapshot=${C_BUILD_GRAPH_PATH}
@@ -211,6 +225,97 @@ rendered_build_sh=${C_BUILD_OUTPUT}/build.sh
 rendered_dockerfile=${C_BUILD_OUTPUT}/Dockerfile
 exit_status=${exit_status}
 EOF
+}
+
+record_artifact_paths() {
+  [[ -f "${PROJECT_RECORD_PATH}" ]] || return 0
+
+  python3 - "${PROJECT_RECORD_PATH}" <<'PY'
+import sys
+
+record_path = sys.argv[1]
+
+try:
+    import yaml
+except Exception:
+    yaml = None
+
+if yaml is not None:
+    with open(record_path, encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    for artifact in data.get("artifacts") or []:
+        path = str(artifact.get("path") or "").strip()
+        if path:
+            print(path)
+    raise SystemExit(0)
+
+in_artifacts = False
+for raw_line in open(record_path, encoding="utf-8", errors="replace"):
+    line = raw_line.rstrip("\n")
+    if line.startswith("artifacts:"):
+        in_artifacts = True
+        continue
+    if in_artifacts and line and not line.startswith((" ", "-")):
+        break
+    stripped = line.strip()
+    if in_artifacts and stripped.startswith("path:"):
+        print(stripped.split(":", 1)[1].strip().strip("'\""))
+PY
+}
+
+snapshot_one_host_artifact() {
+  local artifact="${1#./}"
+  local src=""
+  local rel=""
+
+  if [[ -z "${artifact}" ]]; then
+    return 0
+  fi
+
+  if [[ "${artifact}" = /* ]]; then
+    src=$(realpath -m "${artifact}")
+    case "${src}" in
+      "${PROJECT_ROOT}/"*)
+        rel="${src#${PROJECT_ROOT}/}"
+        ;;
+      *)
+        warn "Skipping non-project artifact snapshot: ${artifact}"
+        return 0
+        ;;
+    esac
+  else
+    rel="${artifact}"
+    src="${PROJECT_ROOT}/${rel}"
+  fi
+
+  if [[ ! -e "${src}" && ! -L "${src}" ]]; then
+    warn "Host artifact not found for snapshot: ${artifact}"
+    return 0
+  fi
+
+  local dst="${HOST_ARTIFACT_SNAPSHOT_DIR}/${rel}"
+  mkdir -p "$(dirname "${dst}")"
+  cp -a "${src}" "${dst}"
+  printf '%s\n' "${rel}" >> "${HOST_ARTIFACT_SNAPSHOT_DIR}/MANIFEST"
+  (
+    cd "${HOST_ARTIFACT_SNAPSHOT_DIR}"
+    sha256sum "${rel}" >> SHA256SUMS
+  )
+}
+
+snapshot_host_artifacts() {
+  info "Snapshotting host artifacts"
+  : > "${HOST_ARTIFACT_SNAPSHOT_DIR}/SHA256SUMS"
+  : > "${HOST_ARTIFACT_SNAPSHOT_DIR}/MANIFEST"
+
+  {
+    for artifact in "${SNAPSHOT_ARTIFACTS[@]}"; do
+      printf '%s\n' "${artifact}"
+    done
+    record_artifact_paths
+  } | awk 'NF && !seen[$0]++' | while IFS= read -r artifact; do
+    snapshot_one_host_artifact "${artifact}"
+  done
 }
 
 cleanup() {
@@ -241,6 +346,7 @@ fi
 if [[ "${SKIP_TRACK}" -eq 0 ]]; then
   if [[ "${RUN_CLEAN}" -eq 1 ]]; then
     info "Cleaning project before tracked build"
+    fix_project_permissions
     (
       cd "${PROJECT_ROOT}"
       bash -lc "${CLEAN_CMD}"
@@ -261,6 +367,7 @@ if [[ "${SKIP_TRACK}" -eq 0 ]]; then
 
   cp -a "${PROJECT_RECORD_PATH}" "${SNAPSHOT_RECORD_PATH}"
   cp -a "${PROJECT_GRAPH_PATH}" "${SNAPSHOT_GRAPH_PATH}"
+  snapshot_host_artifacts
 else
   [[ -f "${PROJECT_RECORD_PATH}" ]] || die "Missing ${PROJECT_RECORD_PATH}; cannot --skip-track"
   [[ -f "${PROJECT_GRAPH_PATH}" ]] || die "Missing ${PROJECT_GRAPH_PATH}; cannot --skip-track"
@@ -279,7 +386,7 @@ if [[ "${SKIP_DEBUG}" -eq 0 ]]; then
   set +e
   (
     cd "${C_BUILD_ROOT}"
-    go run cmd/c_build/*.go \
+    C_BUILD_CLEAN_CMD="${CLEAN_CMD}" go run cmd/c_build/*.go \
       -c \
       -d \
       "--input=${PROJECT_RECORD_PATH}" \
@@ -315,7 +422,7 @@ if [[ "${SKIP_RENDER}" -eq 0 ]]; then
   info "Rendering Dockerfile and build.sh with c_build"
   (
     cd "${C_BUILD_ROOT}"
-    go run cmd/c_build/*.go \
+    C_BUILD_CLEAN_CMD="${CLEAN_CMD}" go run cmd/c_build/*.go \
       "--input=${PROJECT_RECORD_PATH}" \
       "--output=${C_BUILD_OUTPUT}" \
       "--ld_preload=${REPROBUILD_ROOT}"
